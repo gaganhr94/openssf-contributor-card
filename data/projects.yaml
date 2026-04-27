@@ -20,6 +20,8 @@ projects:
     url: https://openssf.org/projects/bomctl/
     repos:
       - bomctl/bomctl
+      - bomctl/bomctl-action
+      - bomctl/homebrew-bomctl
 
   - slug: criticality-score
     name: Criticality Score
@@ -50,6 +52,7 @@ projects:
       - gittuf/gittuf
       - gittuf/github-app
       - gittuf/visualizer
+      - gittuf/gittuf-installer
 
   - slug: guac
     name: GUAC
@@ -59,6 +62,9 @@ projects:
       - guacsec/guac
       - guacsec/guac-visualizer
       - guacsec/sw-id-core
+      - guacsec/helm-charts
+      - guacsec/guac-data
+      - guacsec/guac-docs
 
   - slug: minder
     name: Minder
@@ -68,6 +74,7 @@ projects:
       - mindersec/minder
       - mindersec/minder-rules-and-profiles
       - mindersec/minder-action
+      - mindersec/minder-client-installer
 
   - slug: openbao
     name: OpenBao
@@ -82,6 +89,9 @@ projects:
       - openbao/devbao
       - openbao/openbao-plugins
       - openbao/openbao-snapshot-agent
+      - openbao/benchmark-openbao
+      - openbao/dough
+      - openbao/openbao-fedora
 
   - slug: model-signing
     name: OpenSSF Model Signing
@@ -153,6 +163,8 @@ projects:
       - protobom/storage
       - protobom/sbom-convert
       - protobom/cel
+      - protobom/homebrew-tap
+      - protobom/scoop-bucket
 
   - slug: rstuf
     name: Repository Service for TUF
@@ -163,6 +175,7 @@ projects:
       - repository-service-tuf/repository-service-tuf-api
       - repository-service-tuf/repository-service-tuf-cli
       - repository-service-tuf/repository-service-tuf-worker
+      - repository-service-tuf/helm-charts
 
   - slug: sbomit
     name: SBOMit
@@ -190,15 +203,19 @@ projects:
       - sigstore/rekor
       - sigstore/fulcio
       - sigstore/sigstore
+      - sigstore/sigstore-go
       - sigstore/sigstore-rs
       - sigstore/sigstore-python
       - sigstore/sigstore-java
+      - sigstore/sigstore-js
       - sigstore/gitsign
       - sigstore/policy-controller
       - sigstore/cosign-installer
       - sigstore/scaffolding
       - sigstore/rekor-monitor
       - sigstore/rekor-search-ui
+      - sigstore/timestamp-authority
+      - sigstore/docs
       - sigstore/helm-charts
       - sigstore/k8s-manifest-sigstore
       - sigstore/root-signing
@@ -215,6 +232,11 @@ projects:
       - slsa-framework/slsa-policy
       - slsa-framework/slsa-jenkins-generator
       - slsa-framework/source-tool
+      - slsa-framework/source-policies
+      - slsa-framework/source-actions
+      - slsa-framework/github-actions-buildtypes
+      - slsa-framework/gcb-buildtypes
+      - slsa-framework/slsa-actions-template
 
   - slug: zarf
     name: Zarf
