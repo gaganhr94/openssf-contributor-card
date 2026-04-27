@@ -49,11 +49,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: build.db
-          # Bumping data/projects.yaml invalidates the cache so the next
-          # build does a cold rebuild against the new repo set.
-          key: contribcard-db-v1-${{ hashFiles('data/projects.yaml') }}
+          # Cache key includes the schema files so any schema/data-shape change
+          # forces a cold rebuild. Bump the prefix (v2 -> v3 ...) when you
+          # specifically want to invalidate cached data without touching
+          # schema.
+          key: contribcard-db-v2-${{ hashFiles('data/projects.yaml', 'internal/store/schema.sql', 'internal/store/store.go') }}
           restore-keys: |
-            contribcard-db-v1-
+            contribcard-db-v2-
 
       - name: Build CLI
         run: go build -o contribcard ./cmd/contribcard
