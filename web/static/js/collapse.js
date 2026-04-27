@@ -1,12 +1,11 @@
 // Collapse pill rows that overflow a single line into a "+N" tail.
-// Clicking +N expands the row; remeasures on window resize.
+// Clicking +N expands the row; remeasures on resize.
 (() => {
   const lists = document.querySelectorAll('[data-collapsible="true"]');
   if (!lists.length) return;
 
-  // Reserve room for a "+999"-shaped chip so it never wraps onto a second
-  // line itself when we add it.
-  const RESERVE_PX = 80;
+  // Reserve room so the +N chip itself never overflows after we add it.
+  const RESERVE_PX = 64;
 
   function reset(list) {
     Array.from(list.children).forEach(el => {
@@ -22,34 +21,37 @@
     if (list.dataset.expanded === '1') return;
     reset(list);
 
-    // No measurement to do yet — likely the row hasn't been laid out.
-    if (list.clientWidth === 0) return;
-
-    // scrollWidth is the unclipped row width; clientWidth is the visible
-    // width. If the former exceeds the latter, we have overflow.
-    if (list.scrollWidth <= list.clientWidth + 1) return;
+    // Use getBoundingClientRect for accurate sub-pixel measurement —
+    // offsetLeft/clientWidth round to ints which has tripped this up before.
+    const containerRect = list.getBoundingClientRect();
+    if (containerRect.width === 0) return;
 
     const items = Array.from(list.children).filter(el => !el.classList.contains('pill-more'));
     if (items.length <= 1) return;
 
-    const containerWidth = list.clientWidth;
+    // First, see whether the row would overflow at all by checking the
+    // far edge of the last item.
+    const last = items[items.length - 1];
+    const lastRect = last.getBoundingClientRect();
+    const lastRightOffset = lastRect.right - containerRect.left;
+    if (lastRightOffset <= containerRect.width + 0.5) {
+      return; // everything fits
+    }
 
-    // Walk forward, recording how many items we can keep visible while
-    // leaving room for the +N chip at the end.
+    // Walk forward and find how many items we can keep visible while
+    // leaving room for the +N chip.
     let visibleCount = 0;
     for (let i = 0; i < items.length; i++) {
-      const it = items[i];
-      const right = it.offsetLeft + it.offsetWidth;
-      // Reserve space for +N chip after the last visible item.
+      const r = items[i].getBoundingClientRect();
+      const rightOffset = r.right - containerRect.left;
       const isLast = i === items.length - 1;
-      const needed = isLast ? right : right + RESERVE_PX;
-      if (needed > containerWidth) break;
+      const allowed = isLast ? containerRect.width : containerRect.width - RESERVE_PX;
+      if (rightOffset > allowed) break;
       visibleCount = i + 1;
     }
-    // Always show at least one pill so the row isn't just a +N chip.
-    if (visibleCount === 0) visibleCount = 1;
+    if (visibleCount === 0) visibleCount = 1; // always show at least one
 
-    if (visibleCount >= items.length) return; // everything fits
+    if (visibleCount >= items.length) return;
 
     const hidden = items.slice(visibleCount);
     hidden.forEach(el => { el.hidden = true; });
@@ -60,6 +62,7 @@
     more.setAttribute('role', 'button');
     more.setAttribute('aria-label', 'Show ' + hidden.length + ' more');
     more.textContent = '+' + hidden.length;
+
     const expand = () => {
       list.dataset.expanded = '1';
       Array.from(list.querySelectorAll('[hidden]')).forEach(el => { el.hidden = false; });
@@ -82,8 +85,9 @@
     });
   }
 
-  // Run early and again once everything (including fonts) is settled —
-  // pill widths can shift between DOM-ready and load.
+  // Trigger run() across multiple timing points: layout, fonts loading,
+  // window load. Pill widths can shift between these moments and any
+  // single trigger may be early.
   const safeRun = () => requestAnimationFrame(run);
   safeRun();
   if (document.readyState !== 'complete') {
@@ -92,7 +96,25 @@
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(safeRun);
   }
+  // Catch any layout reflow that happens after first paint (late image
+  // loads, late CSS, etc.).
+  setTimeout(safeRun, 250);
+  setTimeout(safeRun, 800);
 
+  // ResizeObserver re-runs whenever the list or its contents change size.
+  if (typeof ResizeObserver === 'function') {
+    const ro = new ResizeObserver(() => {
+      // Don't fight a user who has manually expanded — only re-collapse
+      // if we haven't expanded.
+      lists.forEach(list => {
+        if (list.dataset.expanded === '1') return;
+        collapse(list);
+      });
+    });
+    lists.forEach(list => ro.observe(list));
+  }
+
+  // Window resize: full reset so the +N count adapts to new width.
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
