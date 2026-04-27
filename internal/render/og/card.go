@@ -129,10 +129,14 @@ func (r *Renderer) Render(ctx context.Context, c store.ContributorAggregate) err
 	}
 	dc.DrawStringAnchored(truncate(name, 28), textX, avatarY+60, 0, 0.5)
 
+	// Hero subtitle: "<contributions> contributions to <repo_count> repositories".
+	// Matches the website's prominent stat line. Drawn on two lines using the
+	// regular font so the numbers stand out via the bold xlBold above.
 	dc.SetColor(colorMuted)
 	dc.SetFontFace(r.regular)
-	rankLine := fmt.Sprintf("Ranked #%d of %d OpenSSF contributors", c.Rank, c.TotalContributors)
-	dc.DrawStringAnchored(rankLine, textX, avatarY+120, 0, 0.5)
+	subtitle := fmt.Sprintf("%d contributions to %d repositor%s",
+		c.TotalContributions, c.RepoCount, pluralizeRepo(c.RepoCount))
+	dc.DrawStringAnchored(subtitle, textX, avatarY+120, 0, 0.5)
 	if c.SinceYear() > 0 {
 		var since string
 		if y := c.YearsActive(); y > 0 {
@@ -445,4 +449,12 @@ func pluralWord(word string, n int) string {
 		return word
 	}
 	return word + "s"
+}
+
+// pluralizeRepo returns the suffix completing "repositor[y|ies]".
+func pluralizeRepo(n int) string {
+	if n == 1 {
+		return "y"
+	}
+	return "ies"
 }

@@ -1,5 +1,5 @@
 {{define "pageTitle"}}{{or .DisplayName .Login}} &middot; OpenSSF Contributor{{end}}
-{{define "pageDescription"}}{{or .DisplayName .Login}} &mdash; {{.TotalContributions}} contributions ({{.TotalCommits}} commits, {{.TotalPRs}} PRs, {{.TotalIssues}} issues) to {{.RepoCount}} OpenSSF repositor{{if eq .RepoCount 1}}y{{else}}ies{{end}}{{if .Rank}}, ranked #{{.Rank}} of {{.TotalContributors}}{{end}}.{{end}}
+{{define "pageDescription"}}{{or .DisplayName .Login}} &mdash; {{.TotalContributions}} contributions ({{.TotalCommits}} commits, {{.TotalPRs}} PRs, {{.TotalIssues}} issues) to {{.RepoCount}} OpenSSF repositor{{if eq .RepoCount 1}}y{{else}}ies{{end}}.{{end}}
 {{define "ogType"}}profile{{end}}
 {{define "pageURL"}}{{.SiteURL}}/c/{{.Login}}.html{{end}}
 {{define "ogImage"}}{{.SiteURL}}/og/{{.Login}}.jpg{{end}}
@@ -44,7 +44,6 @@
   <p class="subtitle">
     <strong>{{.TotalContributions}}</strong> contribution{{if ne .TotalContributions 1}}s{{end}}
     to <strong>{{.RepoCount}}</strong> repositor{{if eq .RepoCount 1}}y{{else}}ies{{end}}
-    &middot; ranked <strong>#{{.Rank}}</strong> of {{.TotalContributors}}
   </p>
 
   {{if not .FirstContribution.At.IsZero}}
