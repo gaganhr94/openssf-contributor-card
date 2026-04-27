@@ -16,11 +16,6 @@ A site that generates personalized "contributor cards" for people who've shipped
 Please see [CONTRIBUTORS.md](./CONTRIBUTORS.md) for setup instructions and contribution
 guidelines.
 
-## Code of Conduct
-
-This project follows the
-[OpenSSF Code of Conduct](https://github.com/ossf/foundation/blob/main/CODE-OF-CONDUCT.md).
-
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE).

@@ -109,12 +109,6 @@ When opening an issue, please include:
 - Expected vs. actual behavior
 - Browser / device for visual issues
 
-## Code of conduct
-
-This project follows the
-[OpenSSF Code of Conduct](https://github.com/ossf/foundation/blob/main/CODE-OF-CONDUCT.md).
-Be kind.
-
 ## License
 
 By contributing, you agree your contribution is licensed under
