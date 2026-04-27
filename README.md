@@ -1,6 +1,6 @@
 # OpenSSF Contributor Card
 
-A community-built site that generates personalized "contributor cards" for
+A site that generates personalized "contributor cards" for
 people who've shipped code to [OpenSSF projects](https://openssf.org/projects/).
 Each contributor gets a static page with rich social-media previews
 (personalized OG image, title, description) so links shared on

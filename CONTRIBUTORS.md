@@ -1,8 +1,8 @@
 # Contributing
 
-Thanks for considering a contribution. This is a community-built site that
-displays GitHub contribution data for [OpenSSF projects](https://openssf.org/projects/);
-it's not an official OpenSSF property.
+Thanks for considering a contribution. This site displays GitHub contribution
+data for [OpenSSF projects](https://openssf.org/projects/); it's not an
+official OpenSSF property.
 
 ## Where to start
 
