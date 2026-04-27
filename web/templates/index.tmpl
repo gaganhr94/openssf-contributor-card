@@ -16,9 +16,10 @@
 </section>
 
 <ul id="contributors" class="contributor-grid">
+  {{$base := .BasePath}}
   {{range .Top}}
   <li class="contributor-tile" data-login="{{.Login}}" data-name="{{.DisplayName}}" data-projects="{{range $i, $p := .ProjectSlugs}}{{if $i}} {{end}}{{$p}}{{end}}">
-    <a href="/c/{{.Login}}.html">
+    <a href="{{$base}}/c/{{.Login}}.html">
       <div class="tile-name">{{or .DisplayName .Login}}</div>
       <div class="tile-login">@{{.Login}}</div>
       <div class="tile-stats">{{.Commits}} commits &middot; {{len .ProjectSlugs}} project{{if ne (len .ProjectSlugs) 1}}s{{end}}</div>
@@ -30,5 +31,6 @@
 <p id="empty" class="empty" hidden>No contributors match.</p>
 
 <script id="contrib-data" type="application/json">{{.SearchJSON}}</script>
-<script src="/static/js/search.js" defer></script>
+<script>window.__BASE_PATH__ = {{.BasePath}};</script>
+<script src="{{.BasePath}}/static/js/search.js" defer></script>
 {{end}}

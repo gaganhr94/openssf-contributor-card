@@ -20,16 +20,16 @@
 <meta name="twitter:description" content="{{template "pageDescription" .}}">
 <meta name="twitter:image" content="{{template "ogImage" .}}">
 
-<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/static/css/style.css">
+<link rel="icon" href="{{.BasePath}}/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="{{.BasePath}}/static/css/style.css">
 </head>
 <body>
 <header class="site-header">
-  <a href="/" class="brand">
+  <a href="{{.BasePath}}/" class="brand">
     <span class="brand-mark">OpenSSF</span>
     <span class="brand-sub">Contributor Card</span>
   </a>
-  <nav><a href="/">Browse contributors</a></nav>
+  <nav><a href="{{.BasePath}}/">Browse contributors</a></nav>
 </header>
 
 <main>

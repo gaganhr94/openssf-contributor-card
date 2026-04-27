@@ -6,6 +6,8 @@
   const grid = document.getElementById('contributors');
   const empty = document.getElementById('empty');
   const input = document.getElementById('search');
+  // Set by the index template; "/<repo>" on project Pages, "" on root deploys.
+  const basePath = (typeof window.__BASE_PATH__ === 'string') ? window.__BASE_PATH__ : '';
   if (!grid || !input) return;
 
   // Build an index aligned with the data array. We only render the top-N tiles
@@ -49,7 +51,7 @@
         li.dataset.name = c.n || '';
         li.dataset.projects = (c.p || []).join(' ');
         li.innerHTML =
-          '<a href="/c/' + encodeURIComponent(c.l) + '.html">' +
+          '<a href="' + basePath + '/c/' + encodeURIComponent(c.l) + '.html">' +
           '<div class="tile-name">' + escapeHTML(c.n || c.l) + '</div>' +
           '<div class="tile-login">@' + escapeHTML(c.l) + '</div>' +
           '<div class="tile-stats">' + c.c + ' commits &middot; ' + (c.p || []).length + ' project' + ((c.p || []).length === 1 ? '' : 's') + '</div>' +

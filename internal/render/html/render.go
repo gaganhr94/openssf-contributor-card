@@ -25,17 +25,27 @@ import (
 
 type Options struct {
 	SiteURL  string // absolute URL with no trailing slash, e.g. https://owner.github.io/repo
+	BasePath string // URL path prefix derived from SiteURL: "/repo" for project Pages, "" for root deploys
 	OutDir   string // dist/
 	TopN     int    // how many tiles to render server-side on the index
 	GenAt    time.Time
 }
 
+// DefaultOptions parses the site URL to derive BasePath. GitHub Pages on a
+// project repo serves under /<repo>/, so internal links and assets must be
+// prefixed. For user pages or custom domains at root, BasePath is empty.
 func DefaultOptions(siteURL, outDir string) Options {
+	siteURL = strings.TrimRight(siteURL, "/")
+	basePath := ""
+	if u, err := url.Parse(siteURL); err == nil {
+		basePath = strings.TrimRight(u.Path, "/")
+	}
 	return Options{
-		SiteURL: strings.TrimRight(siteURL, "/"),
-		OutDir:  outDir,
-		TopN:    120,
-		GenAt:   time.Now().UTC(),
+		SiteURL:  siteURL,
+		BasePath: basePath,
+		OutDir:   outDir,
+		TopN:     120,
+		GenAt:    time.Now().UTC(),
 	}
 }
 
@@ -110,6 +120,7 @@ func (r *Renderer) Render(ctx context.Context, st *store.Store) error {
 type contributorView struct {
 	store.ContributorAggregate
 	SiteURL   string
+	BasePath  string
 	ShareText string
 }
 
@@ -135,6 +146,7 @@ func (r *Renderer) renderContributors(cs []store.ContributorAggregate) error {
 		view := contributorView{
 			ContributorAggregate: c,
 			SiteURL:              r.opt.SiteURL,
+			BasePath:             r.opt.BasePath,
 			ShareText:            shareText(c),
 		}
 		if err := t.ExecuteTemplate(f, "layout", view); err != nil {
@@ -169,6 +181,7 @@ func plural(n int) string {
 
 type indexView struct {
 	SiteURL    string
+	BasePath   string
 	Total      int
 	Projects   []store.ProjectSummary
 	Top        []indexTile
@@ -241,6 +254,7 @@ func (r *Renderer) renderIndex(cs []store.ContributorAggregate, projects []store
 
 	view := indexView{
 		SiteURL:    r.opt.SiteURL,
+		BasePath:   r.opt.BasePath,
 		Total:      len(cs),
 		Projects:   projects,
 		Top:        tiles,
