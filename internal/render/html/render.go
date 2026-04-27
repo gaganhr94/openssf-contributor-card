@@ -197,6 +197,7 @@ type searchEntry struct {
 	N string   `json:"n,omitempty"`  // display name
 	C int      `json:"c"`            // total contributions (commits + PRs + issues)
 	P []string `json:"p,omitempty"`  // project slugs
+	A string   `json:"a,omitempty"`  // avatar URL
 }
 
 func (r *Renderer) renderIndex(cs []store.ContributorAggregate, projects []store.ProjectSummary) error {
@@ -234,6 +235,7 @@ func (r *Renderer) renderIndex(cs []store.ContributorAggregate, projects []store
 			N: c.DisplayName,
 			C: c.TotalContributions,
 			P: projectSlugs(c.Projects),
+			A: c.AvatarURL,
 		}
 	}
 	jsonB, err := json.Marshal(entries)

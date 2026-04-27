@@ -57,14 +57,20 @@
       active = -1;
       return;
     }
-    list.innerHTML = current.map((c, i) =>
-      '<li role="option" id="opt-' + i + '" class="suggestion" data-login="' + escape(c.l) + '"' +
-      (i === active ? ' aria-selected="true"' : '') + '>' +
-      '<span class="suggestion-name">' + escape(c.n || c.l) + '</span>' +
-      '<span class="suggestion-login">@' + escape(c.l) + '</span>' +
-      '<span class="suggestion-meta">' + c.c + ' commit' + (c.c === 1 ? '' : 's') + '</span>' +
-      '</li>'
-    ).join('');
+    list.innerHTML = current.map((c, i) => {
+      const avatar = c.a
+        ? '<img class="suggestion-avatar" src="' + escape(c.a) + '&s=64" alt="" loading="lazy" width="28" height="28">'
+        : '<span class="suggestion-avatar suggestion-avatar-fallback" aria-hidden="true">' + escape((c.l || '?').charAt(0).toUpperCase()) + '</span>';
+      return '<li role="option" id="opt-' + i + '" class="suggestion" data-login="' + escape(c.l) + '"' +
+        (i === active ? ' aria-selected="true"' : '') + '>' +
+        avatar +
+        '<span class="suggestion-text">' +
+          '<span class="suggestion-name">' + escape(c.n || c.l) + '</span>' +
+          '<span class="suggestion-login">@' + escape(c.l) + '</span>' +
+        '</span>' +
+        '<span class="suggestion-meta">' + c.c + ' contribution' + (c.c === 1 ? '' : 's') + '</span>' +
+        '</li>';
+    }).join('');
     list.hidden = false;
     input.setAttribute('aria-expanded', 'true');
     if (active >= 0 && active < current.length) {
