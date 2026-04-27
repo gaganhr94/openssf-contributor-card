@@ -68,7 +68,6 @@
           '<span class="suggestion-name">' + escape(c.n || c.l) + '</span>' +
           '<span class="suggestion-login">@' + escape(c.l) + '</span>' +
         '</span>' +
-        '<span class="suggestion-meta">' + c.c + ' contribution' + (c.c === 1 ? '' : 's') + '</span>' +
         '</li>';
     }).join('');
     list.hidden = false;
