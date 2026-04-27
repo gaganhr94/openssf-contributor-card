@@ -45,6 +45,9 @@ type RepoContribution struct {
 	RepoFullName     string
 	ContributorLogin string
 	Commits          int
+	PRsOpened        int
+	PRsMerged        int
+	IssuesOpened     int
 	FirstCommitAt    time.Time
 	LastCommitAt     time.Time
 }
@@ -70,24 +73,38 @@ func (s *Store) ApplyRepoContributions(ctx context.Context, tx *sql.Tx, rs []Rep
 	var q string
 	if replace {
 		q = `
-		INSERT INTO contributions (repo_full_name, contributor_login, commits, first_commit_at, last_commit_at)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO contributions (
+			repo_full_name, contributor_login,
+			commits, prs_opened, prs_merged, issues_opened,
+			first_commit_at, last_commit_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(repo_full_name, contributor_login) DO UPDATE SET
 			commits         = excluded.commits,
+			prs_opened      = excluded.prs_opened,
+			prs_merged      = excluded.prs_merged,
+			issues_opened   = excluded.issues_opened,
 			first_commit_at = excluded.first_commit_at,
 			last_commit_at  = excluded.last_commit_at`
 	} else {
 		q = `
-		INSERT INTO contributions (repo_full_name, contributor_login, commits, first_commit_at, last_commit_at)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO contributions (
+			repo_full_name, contributor_login,
+			commits, prs_opened, prs_merged, issues_opened,
+			first_commit_at, last_commit_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(repo_full_name, contributor_login) DO UPDATE SET
-			commits         = contributions.commits + excluded.commits,
+			commits         = contributions.commits       + excluded.commits,
+			prs_opened      = contributions.prs_opened    + excluded.prs_opened,
+			prs_merged      = contributions.prs_merged    + excluded.prs_merged,
+			issues_opened   = contributions.issues_opened + excluded.issues_opened,
 			first_commit_at = MIN(contributions.first_commit_at, excluded.first_commit_at),
 			last_commit_at  = MAX(contributions.last_commit_at, excluded.last_commit_at)`
 	}
 	for _, r := range rs {
 		if _, err := tx.ExecContext(ctx, q,
-			r.RepoFullName, r.ContributorLogin, r.Commits, r.FirstCommitAt, r.LastCommitAt); err != nil {
+			r.RepoFullName, r.ContributorLogin,
+			r.Commits, r.PRsOpened, r.PRsMerged, r.IssuesOpened,
+			r.FirstCommitAt, r.LastCommitAt); err != nil {
 			return fmt.Errorf("apply contribution %s/%s: %w", r.RepoFullName, r.ContributorLogin, err)
 		}
 	}

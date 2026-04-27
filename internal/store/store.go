@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -13,7 +14,7 @@ import (
 //go:embed schema.sql
 var schemaSQL string
 
-const SchemaVersion = "1"
+const SchemaVersion = "2"
 
 type Store struct {
 	DB *sql.DB
@@ -44,6 +45,14 @@ func (s *Store) Close() error {
 func (s *Store) migrate(ctx context.Context) error {
 	if _, err := s.DB.ExecContext(ctx, schemaSQL); err != nil {
 		return fmt.Errorf("apply schema: %w", err)
+	}
+	// Idempotent column-add for DBs cached at the v1 schema. SQLite has no
+	// "ADD COLUMN IF NOT EXISTS"; ignore the duplicate-column error instead.
+	if _, err := s.DB.ExecContext(ctx,
+		`ALTER TABLE contributions ADD COLUMN issues_opened INTEGER NOT NULL DEFAULT 0`); err != nil {
+		if !strings.Contains(err.Error(), "duplicate column") {
+			return fmt.Errorf("add issues_opened column: %w", err)
+		}
 	}
 	if _, err := s.DB.ExecContext(ctx,
 		`INSERT INTO build_meta(key, value) VALUES('schema_version', ?)

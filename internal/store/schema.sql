@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS contributions (
     commits            INTEGER NOT NULL DEFAULT 0,
     prs_opened         INTEGER NOT NULL DEFAULT 0,
     prs_merged         INTEGER NOT NULL DEFAULT 0,
+    issues_opened      INTEGER NOT NULL DEFAULT 0,
     first_commit_at    DATETIME,
     last_commit_at     DATETIME,
     PRIMARY KEY (repo_full_name, contributor_login)

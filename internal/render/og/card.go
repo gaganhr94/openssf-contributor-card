@@ -132,19 +132,33 @@ func (r *Renderer) Render(ctx context.Context, c store.ContributorAggregate) err
 	dc.SetColor(colorMuted)
 	dc.SetFontFace(r.regular)
 	rankLine := fmt.Sprintf("Ranked #%d of %d OpenSSF contributors", c.Rank, c.TotalContributors)
-	dc.DrawStringAnchored(rankLine, textX, avatarY+105, 0, 0.5)
+	dc.DrawStringAnchored(rankLine, textX, avatarY+120, 0, 0.5)
+	if c.SinceYear() > 0 {
+		var since string
+		if y := c.YearsActive(); y > 0 {
+			since = fmt.Sprintf("Contributing since %d  ·  %d year%s", c.SinceYear(), y, pluralWord("", y))
+		} else {
+			since = fmt.Sprintf("Contributing since %d", c.SinceYear())
+		}
+		dc.DrawStringAnchored(since, textX, avatarY+160, 0, 0.5)
+	}
 
-	// Stat tiles
-	tileY := avatarY + avatarSize + 50
+	// Stat tiles: 4 across (commits / PRs / issues / total contributions).
+	tileY := avatarY + avatarSize + 40
 	tileH := 130.0
-	tileGap := 24.0
-	tileW := (cardWidth - 80*2 - tileGap*2) / 3
-	r.drawStatTile(dc, 80, tileY, tileW, tileH, fmt.Sprintf("%d", c.TotalCommits), "commits")
-	r.drawStatTile(dc, 80+tileW+tileGap, tileY, tileW, tileH, fmt.Sprintf("%d", len(c.Projects)), pluralWord("project", len(c.Projects)))
-	r.drawStatTile(dc, 80+(tileW+tileGap)*2, tileY, tileW, tileH, fmt.Sprintf("#%d", c.Rank), "rank")
+	tileGap := 18.0
+	tileW := (cardWidth - 80*2 - tileGap*3) / 4
+	r.drawStatTile(dc, 80, tileY, tileW, tileH,
+		fmt.Sprintf("%d", c.TotalCommits), "commits", false)
+	r.drawStatTile(dc, 80+(tileW+tileGap), tileY, tileW, tileH,
+		fmt.Sprintf("%d", c.TotalPRs), "PRs", false)
+	r.drawStatTile(dc, 80+(tileW+tileGap)*2, tileY, tileW, tileH,
+		fmt.Sprintf("%d", c.TotalIssues), "issues", false)
+	r.drawStatTile(dc, 80+(tileW+tileGap)*3, tileY, tileW, tileH,
+		fmt.Sprintf("%d", c.TotalContributions), "contributions", true)
 
 	// Project pills
-	pillY := tileY + tileH + 35
+	pillY := tileY + tileH + 30
 	r.drawProjectPills(dc, 80, pillY, c.Projects)
 
 	dst := filepath.Join(r.outDir, "og", c.Login+".jpg")
@@ -247,16 +261,28 @@ func (r *Renderer) avatarPath(ctx context.Context, c store.ContributorAggregate)
 	return r.avatars.Path(ctx, c.Login, c.AvatarURL)
 }
 
-func (r *Renderer) drawStatTile(dc *gg.Context, x, y, w, h float64, value, label string) {
-	dc.SetColor(colorAccentBG)
+func (r *Renderer) drawStatTile(dc *gg.Context, x, y, w, h float64, value, label string, highlight bool) {
+	if highlight {
+		dc.SetColor(colorAccent)
+	} else {
+		dc.SetColor(colorAccentBG)
+	}
 	dc.DrawRoundedRectangle(x, y, w, h, 14)
 	dc.Fill()
 
-	dc.SetColor(colorFG)
+	if highlight {
+		dc.SetColor(color.White)
+	} else {
+		dc.SetColor(colorFG)
+	}
 	dc.SetFontFace(r.stat)
 	dc.DrawStringAnchored(value, x+w/2, y+h/2-12, 0.5, 0.5)
 
-	dc.SetColor(colorMuted)
+	if highlight {
+		dc.SetColor(color.RGBA{0xff, 0xff, 0xff, 0xb4}) // ~70% white
+	} else {
+		dc.SetColor(colorMuted)
+	}
 	dc.SetFontFace(r.regular)
 	dc.DrawStringAnchored(strings.ToUpper(label), x+w/2, y+h-30, 0.5, 0.5)
 }

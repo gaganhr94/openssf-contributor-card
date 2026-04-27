@@ -172,3 +172,200 @@ func (c *Client) FetchCommits(ctx context.Context, opts FetchCommitsOpts) (*Fetc
 
 	return out, nil
 }
+
+// PRRecord is one PR observed by FetchPRs. Author is nil for PRs by users
+// whose accounts have been deleted or who aren't real GitHub users (rare).
+type PRRecord struct {
+	CreatedAt time.Time
+	Merged    bool
+	Author    *CommitAuthor
+}
+
+// IssueRecord is one issue observed by FetchIssues. PRs are excluded by
+// GraphQL's `issues` connection, so this is non-overlapping with PRRecord.
+type IssueRecord struct {
+	CreatedAt time.Time
+	Author    *CommitAuthor
+}
+
+const repoPRsQuery = `
+query RepoPRs($owner: String!, $name: String!, $cursor: String) {
+  repository(owner: $owner, name: $name) {
+    pullRequests(first: 100, after: $cursor, orderBy: {field: CREATED_AT, direction: DESC}) {
+      pageInfo { endCursor hasNextPage }
+      nodes {
+        createdAt
+        merged
+        author {
+          login
+          ... on User { name avatarUrl url bio }
+        }
+      }
+    }
+  }
+  rateLimit { cost remaining resetAt }
+}`
+
+type repoPRsResp struct {
+	Repository *struct {
+		PullRequests struct {
+			PageInfo struct {
+				EndCursor   string `json:"endCursor"`
+				HasNextPage bool   `json:"hasNextPage"`
+			} `json:"pageInfo"`
+			Nodes []struct {
+				CreatedAt time.Time `json:"createdAt"`
+				Merged    bool      `json:"merged"`
+				Author    *struct {
+					Login     string `json:"login"`
+					Name      string `json:"name"`
+					AvatarURL string `json:"avatarUrl"`
+					URL       string `json:"url"`
+					Bio       string `json:"bio"`
+				} `json:"author"`
+			} `json:"nodes"`
+		} `json:"pullRequests"`
+	} `json:"repository"`
+}
+
+// FetchPRs paginates PRs on a repo, ordered newest-first. If `since` is
+// non-zero we stop as soon as we see a PR older than that — incremental
+// refreshes hit at most one extra page.
+func (c *Client) FetchPRs(ctx context.Context, owner, name string, since time.Time) ([]PRRecord, error) {
+	var out []PRRecord
+	var cursor *string
+	pageNum := 0
+	for {
+		pageNum++
+		vars := map[string]any{"owner": owner, "name": name, "cursor": cursor}
+		var resp repoPRsResp
+		if err := c.Do(ctx, repoPRsQuery, vars, &resp); err != nil {
+			return nil, fmt.Errorf("%s/%s prs page %d: %w", owner, name, pageNum, err)
+		}
+		if resp.Repository == nil {
+			return out, nil
+		}
+		stop := false
+		for _, n := range resp.Repository.PullRequests.Nodes {
+			if !since.IsZero() && n.CreatedAt.Before(since) {
+				stop = true
+				break
+			}
+			rec := PRRecord{CreatedAt: n.CreatedAt, Merged: n.Merged}
+			if n.Author != nil && n.Author.Login != "" {
+				rec.Author = &CommitAuthor{
+					Login:     n.Author.Login,
+					Name:      n.Author.Name,
+					AvatarURL: n.Author.AvatarURL,
+					URL:       n.Author.URL,
+					Bio:       n.Author.Bio,
+				}
+			}
+			out = append(out, rec)
+		}
+		cost, remaining, reset := c.LastRateLimit()
+		slog.Debug("fetched pr page",
+			"repo", owner+"/"+name,
+			"page", pageNum,
+			"prs", len(resp.Repository.PullRequests.Nodes),
+			"cost", cost,
+			"remaining", remaining,
+			"resetIn", time.Until(reset).Round(time.Second))
+		if stop || !resp.Repository.PullRequests.PageInfo.HasNextPage {
+			break
+		}
+		next := resp.Repository.PullRequests.PageInfo.EndCursor
+		cursor = &next
+	}
+	return out, nil
+}
+
+const repoIssuesQuery = `
+query RepoIssues($owner: String!, $name: String!, $cursor: String) {
+  repository(owner: $owner, name: $name) {
+    issues(first: 100, after: $cursor, orderBy: {field: CREATED_AT, direction: DESC}) {
+      pageInfo { endCursor hasNextPage }
+      nodes {
+        createdAt
+        author {
+          login
+          ... on User { name avatarUrl url bio }
+        }
+      }
+    }
+  }
+  rateLimit { cost remaining resetAt }
+}`
+
+type repoIssuesResp struct {
+	Repository *struct {
+		Issues struct {
+			PageInfo struct {
+				EndCursor   string `json:"endCursor"`
+				HasNextPage bool   `json:"hasNextPage"`
+			} `json:"pageInfo"`
+			Nodes []struct {
+				CreatedAt time.Time `json:"createdAt"`
+				Author    *struct {
+					Login     string `json:"login"`
+					Name      string `json:"name"`
+					AvatarURL string `json:"avatarUrl"`
+					URL       string `json:"url"`
+					Bio       string `json:"bio"`
+				} `json:"author"`
+			} `json:"nodes"`
+		} `json:"issues"`
+	} `json:"repository"`
+}
+
+// FetchIssues paginates issues (excluding PRs — GraphQL's `issues` connection
+// only returns true issues), newest-first. Stops on the first issue older
+// than `since` to keep incremental refreshes cheap.
+func (c *Client) FetchIssues(ctx context.Context, owner, name string, since time.Time) ([]IssueRecord, error) {
+	var out []IssueRecord
+	var cursor *string
+	pageNum := 0
+	for {
+		pageNum++
+		vars := map[string]any{"owner": owner, "name": name, "cursor": cursor}
+		var resp repoIssuesResp
+		if err := c.Do(ctx, repoIssuesQuery, vars, &resp); err != nil {
+			return nil, fmt.Errorf("%s/%s issues page %d: %w", owner, name, pageNum, err)
+		}
+		if resp.Repository == nil {
+			return out, nil
+		}
+		stop := false
+		for _, n := range resp.Repository.Issues.Nodes {
+			if !since.IsZero() && n.CreatedAt.Before(since) {
+				stop = true
+				break
+			}
+			rec := IssueRecord{CreatedAt: n.CreatedAt}
+			if n.Author != nil && n.Author.Login != "" {
+				rec.Author = &CommitAuthor{
+					Login:     n.Author.Login,
+					Name:      n.Author.Name,
+					AvatarURL: n.Author.AvatarURL,
+					URL:       n.Author.URL,
+					Bio:       n.Author.Bio,
+				}
+			}
+			out = append(out, rec)
+		}
+		cost, remaining, reset := c.LastRateLimit()
+		slog.Debug("fetched issue page",
+			"repo", owner+"/"+name,
+			"page", pageNum,
+			"issues", len(resp.Repository.Issues.Nodes),
+			"cost", cost,
+			"remaining", remaining,
+			"resetIn", time.Until(reset).Round(time.Second))
+		if stop || !resp.Repository.Issues.PageInfo.HasNextPage {
+			break
+		}
+		next := resp.Repository.Issues.PageInfo.EndCursor
+		cursor = &next
+	}
+	return out, nil
+}

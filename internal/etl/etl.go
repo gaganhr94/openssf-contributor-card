@@ -67,49 +67,90 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 		}
 
 		started := time.Now()
-		res, err := gh.FetchCommits(ctx, github.FetchCommitsOpts{
-			Owner: owner, Name: name, Since: since,
-		})
-		if err != nil {
-			return fmt.Errorf("fetch %s: %w", r.FullName, err)
-		}
-		// Aggregate commits by author login, dropping anonymous and excluded.
+
+		// Per-(repo, login) aggregation across commits, PRs, and issues.
 		type agg struct {
-			contrib  store.ContributorUpsert
-			commits  int
-			firstAt  time.Time
-			lastAt   time.Time
+			contrib      store.ContributorUpsert
+			commits      int
+			prsOpened    int
+			prsMerged    int
+			issuesOpened int
+			firstAt      time.Time
+			lastAt       time.Time
 		}
 		byLogin := map[string]*agg{}
-		for _, c := range res.Commits {
-			if c.Author == nil || c.Author.Login == "" {
-				continue
+
+		ensure := func(author *github.CommitAuthor) *agg {
+			if author == nil || author.Login == "" {
+				return nil
 			}
-			if exclusions.IsExcluded(c.Author.Login) {
-				continue
+			if exclusions.IsExcluded(author.Login) {
+				return nil
 			}
-			a := byLogin[c.Author.Login]
+			a := byLogin[author.Login]
 			if a == nil {
 				a = &agg{
 					contrib: store.ContributorUpsert{
-						Login:       c.Author.Login,
-						DisplayName: c.Author.Name,
-						AvatarURL:   c.Author.AvatarURL,
-						ProfileURL:  c.Author.URL,
-						Bio:         c.Author.Bio,
+						Login:       author.Login,
+						DisplayName: author.Name,
+						AvatarURL:   author.AvatarURL,
+						ProfileURL:  author.URL,
+						Bio:         author.Bio,
 					},
-					firstAt: c.CommittedDate,
-					lastAt:  c.CommittedDate,
 				}
-				byLogin[c.Author.Login] = a
+				byLogin[author.Login] = a
+			}
+			return a
+		}
+
+		// 1. Commits.
+		commitsRes, err := gh.FetchCommits(ctx, github.FetchCommitsOpts{
+			Owner: owner, Name: name, Since: since,
+		})
+		if err != nil {
+			return fmt.Errorf("fetch commits %s: %w", r.FullName, err)
+		}
+		for _, c := range commitsRes.Commits {
+			a := ensure(c.Author)
+			if a == nil {
+				continue
 			}
 			a.commits++
-			if c.CommittedDate.Before(a.firstAt) {
+			if a.firstAt.IsZero() || c.CommittedDate.Before(a.firstAt) {
 				a.firstAt = c.CommittedDate
 			}
 			if c.CommittedDate.After(a.lastAt) {
 				a.lastAt = c.CommittedDate
 			}
+		}
+
+		// 2. PRs.
+		prs, err := gh.FetchPRs(ctx, owner, name, since)
+		if err != nil {
+			return fmt.Errorf("fetch prs %s: %w", r.FullName, err)
+		}
+		for _, p := range prs {
+			a := ensure(p.Author)
+			if a == nil {
+				continue
+			}
+			a.prsOpened++
+			if p.Merged {
+				a.prsMerged++
+			}
+		}
+
+		// 3. Issues.
+		issues, err := gh.FetchIssues(ctx, owner, name, since)
+		if err != nil {
+			return fmt.Errorf("fetch issues %s: %w", r.FullName, err)
+		}
+		for _, is := range issues {
+			a := ensure(is.Author)
+			if a == nil {
+				continue
+			}
+			a.issuesOpened++
 		}
 
 		// Persist this repo's batch in a single transaction.
@@ -125,6 +166,9 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 				RepoFullName:     r.FullName,
 				ContributorLogin: login,
 				Commits:          a.commits,
+				PRsOpened:        a.prsOpened,
+				PRsMerged:        a.prsMerged,
+				IssuesOpened:     a.issuesOpened,
 				FirstCommitAt:    a.firstAt,
 				LastCommitAt:     a.lastAt,
 			})
@@ -139,7 +183,7 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 			tx.Rollback()
 			return err
 		}
-		if err := st.UpdateRepoMetadata(ctx, tx, r.FullName, res.DefaultBranch, res.HeadOID, time.Now().UTC()); err != nil {
+		if err := st.UpdateRepoMetadata(ctx, tx, r.FullName, commitsRes.DefaultBranch, commitsRes.HeadOID, time.Now().UTC()); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -151,7 +195,9 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 		slog.Info("fetched repo",
 			"repo", r.FullName,
 			"index", fmt.Sprintf("%d/%d", i+1, len(repos)),
-			"commits", len(res.Commits),
+			"commits", len(commitsRes.Commits),
+			"prs", len(prs),
+			"issues", len(issues),
 			"contributors", len(byLogin),
 			"incremental", !since.IsZero(),
 			"elapsed", time.Since(started).Round(time.Millisecond),

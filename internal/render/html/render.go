@@ -195,7 +195,7 @@ type indexTile struct {
 type searchEntry struct {
 	L string   `json:"l"`            // login
 	N string   `json:"n,omitempty"`  // display name
-	C int      `json:"c"`            // total commits
+	C int      `json:"c"`            // total contributions (commits + PRs + issues)
 	P []string `json:"p,omitempty"`  // project slugs
 }
 
@@ -232,7 +232,7 @@ func (r *Renderer) renderIndex(cs []store.ContributorAggregate, projects []store
 		entries[i] = searchEntry{
 			L: c.Login,
 			N: c.DisplayName,
-			C: c.TotalCommits,
+			C: c.TotalContributions,
 			P: projectSlugs(c.Projects),
 		}
 	}
