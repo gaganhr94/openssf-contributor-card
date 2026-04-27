@@ -474,52 +474,45 @@ main {
 }
 .share-trigger svg { display: block; }
 
+/* Inline replacement for the trigger button — no floating overlay, no
+   blocked content. The popup is a single horizontal pill of icons that
+   appears in the trigger's place when activated. */
 .share-popup {
-  position: absolute;
-  bottom: calc(100% + 10px);
-  left: 0;
-  width: 280px;
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.7rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 12px 32px rgba(12, 52, 85, 0.18);
-  padding: 1rem 1rem 0.85rem;
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.15s, transform 0.15s;
-  z-index: 20;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(12, 52, 85, 0.1);
 }
-.share-popup.open {
-  opacity: 1;
-  transform: translateY(0);
+.share-trigger-wrap.open .share-trigger { display: none; }
+.share-trigger-wrap.open .share-popup { display: inline-flex; }
+
+.share-popup .share-btn {
+  width: 34px; height: 34px;
 }
-.share-popup-close {
-  position: absolute;
-  top: 0.5rem; right: 0.5rem;
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.share-popup .share-btn svg { width: 14px; height: 14px; }
+
+.share-btn-close {
+  background: transparent !important;
+  color: var(--muted) !important;
+  border: none !important;
 }
-.share-popup-close:hover { background: var(--accent-soft); color: var(--navy); }
-.share-popup-title {
-  margin: 0 0 0.85rem;
-  padding-right: 1.5rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--navy);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.share-btn-close:hover {
+  background: var(--accent-soft) !important;
+  color: var(--navy) !important;
 }
-.share-popup-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
+
+/* Copy-link visual feedback: swap the copy icon for a check briefly
+   instead of a tooltip element. */
+.share-icon-copied { display: none; }
+[data-share="copy"].copied .share-icon-copy { display: none; }
+[data-share="copy"].copied .share-icon-copied { display: inline-block; }
+[data-share="copy"].copied {
+  background: var(--gold-soft) !important;
+  color: var(--navy) !important;
 }
 
 .get-yours {
