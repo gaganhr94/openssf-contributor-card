@@ -149,12 +149,14 @@ main { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
 
 .card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 18px;
+  border: 2px solid var(--blue);
+  border-radius: 20px;
   padding: 2.25rem 2.25rem 2rem;
   max-width: 640px;
   margin: 0 auto;
-  box-shadow: 0 6px 22px rgba(12, 52, 85, 0.06);
+  box-shadow:
+    0 0 0 6px rgba(104, 151, 184, 0.08),
+    0 14px 36px rgba(12, 52, 85, 0.14);
   position: relative;
   overflow: hidden;
 }
@@ -162,7 +164,7 @@ main { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 6px;
+  height: 8px;
   background: linear-gradient(90deg, var(--navy), var(--blue), var(--gold));
 }
 .card-header { display: flex; gap: 1.5rem; align-items: center; margin-bottom: 1.5rem; }
