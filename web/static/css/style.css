@@ -403,9 +403,10 @@ main { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
 .share {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: 0.8rem;
   align-items: center;
-  padding-top: 1.2rem;
+  justify-content: center;
+  padding-top: 1.5rem;
   margin-top: 1.5rem;
   border-top: 1px solid var(--border);
 }
@@ -413,13 +414,15 @@ main { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
 .share-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.55rem 1.1rem;
+  justify-content: center;
+  gap: 0.55rem;
+  min-width: 180px;
+  padding: 0.85rem 1.6rem;
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--navy);
   border: 1px solid transparent;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -480,18 +483,20 @@ main { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
 }
 
 .get-yours {
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1rem;
+  justify-content: center;
+  gap: 0.55rem;
+  min-width: 180px;
+  padding: 0.85rem 1.6rem;
   border-radius: 999px;
   background: var(--navy);
   color: var(--surface);
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
 }
 .get-yours:hover { background: var(--navy-soft); color: var(--surface); text-decoration: none; }
+.get-yours svg { width: 16px; height: 16px; }
 .thanks {
   margin: 1.5rem 0 0;
   text-align: center;
