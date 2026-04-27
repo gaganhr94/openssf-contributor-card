@@ -6,6 +6,13 @@
 
 {{define "body"}}
 <article class="card">
+  <header class="card-brand">
+    <a href="{{.BasePath}}/" aria-label="OpenSSF Contributor Card home">
+      <img src="{{.BasePath}}/static/openssf-logo.svg" alt="OpenSSF" class="card-brand-logo" />
+    </a>
+    <p class="card-brand-title">Contributor Card</p>
+  </header>
+
   <div class="card-header">
     {{if .AvatarURL}}
     <a href="{{or .ProfileURL (printf "https://github.com/%s" .Login)}}" rel="noopener" class="avatar-link">

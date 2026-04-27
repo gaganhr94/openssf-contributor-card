@@ -27,22 +27,32 @@ body {
 a { color: var(--navy-soft); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-.site-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.9rem 2rem;
-  background: var(--surface);
+main { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+
+/* Brand header that sits inside the card frame on every contributor page,
+   matching CNCF's pattern of putting the project logo at the top of the
+   card itself (rather than in a separate site nav). */
+.card-brand {
+  text-align: center;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--border);
 }
-.brand img { height: 36px; display: block; }
-.site-header nav a {
-  font-size: 0.9rem; color: var(--muted);
-  padding: 0.4rem 0.7rem; border-radius: 6px;
+.card-brand-logo {
+  max-width: 240px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto 0.75rem;
 }
-.site-header nav a:hover { background: var(--accent-soft); text-decoration: none; }
-
-main { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+.card-brand-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
 
 /* ── Index page: search-as-hero ─────────────────────────────────────────── */
 
