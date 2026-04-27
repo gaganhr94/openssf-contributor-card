@@ -265,14 +265,8 @@ func (r *Renderer) drawProjectPills(dc *gg.Context, x, y float64, projects []sto
 	if len(projects) == 0 {
 		return
 	}
-	// Sort by maturity (graduated > incubating > sandbox), then name.
-	maturityOrder := map[string]int{"graduated": 0, "incubating": 1, "sandbox": 2}
 	sorted := append([]store.ProjectSummary(nil), projects...)
 	sort.Slice(sorted, func(i, j int) bool {
-		mi, mj := maturityOrder[sorted[i].Maturity], maturityOrder[sorted[j].Maturity]
-		if mi != mj {
-			return mi < mj
-		}
 		return sorted[i].Name < sorted[j].Name
 	})
 
@@ -300,19 +294,10 @@ func (r *Renderer) drawProjectPills(dc *gg.Context, x, y float64, projects []sto
 			}
 			break
 		}
-		switch p.Maturity {
-		case "graduated":
-			dc.SetColor(colorAccent)
-		default:
-			dc.SetColor(colorAccentBG)
-		}
+		dc.SetColor(colorAccentBG)
 		dc.DrawRoundedRectangle(cur, y, pillW, pillH, pillH/2)
 		dc.Fill()
-		if p.Maturity == "graduated" {
-			dc.SetColor(color.White)
-		} else {
-			dc.SetColor(colorFG)
-		}
+		dc.SetColor(colorFG)
 		dc.DrawStringAnchored(p.Name, cur+pillW/2, y+pillH/2, 0.5, 0.5)
 		cur += pillW + pillGap
 		shown++

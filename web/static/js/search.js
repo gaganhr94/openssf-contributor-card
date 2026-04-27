@@ -1,75 +1,140 @@
-// Substring search over the contributor index embedded in #contrib-data.
-// Hides tiles whose login/name/projects don't match. Pure vanilla JS so the
-// site needs no JS framework.
+// Username-search dropdown for the index page.
+//
+// Behaviour: type → list of matching contributors appears as a dropdown.
+// Enter, click, or up/down + Enter navigates to /c/<login>.html.
+// Pure vanilla, no framework.
 (() => {
   const data = JSON.parse(document.getElementById('contrib-data').textContent || '[]');
-  const grid = document.getElementById('contributors');
-  const empty = document.getElementById('empty');
   const input = document.getElementById('search');
+  const list = document.getElementById('suggestions');
   // Set by the index template; "/<repo>" on project Pages, "" on root deploys.
   const basePath = (typeof window.__BASE_PATH__ === 'string') ? window.__BASE_PATH__ : '';
-  if (!grid || !input) return;
+  if (!input || !list) return;
 
-  // Build an index aligned with the data array. We only render the top-N tiles
-  // server-side, so when a search matches a contributor outside the rendered
-  // top-N we render a tile on the fly.
-  const tiles = new Map(); // login -> element
-  for (const tile of grid.querySelectorAll('.contributor-tile')) {
-    tiles.set(tile.dataset.login.toLowerCase(), tile);
-  }
+  const MAX_RESULTS = 8;
+  let active = -1;
+  let current = []; // currently rendered matches
+
+  const escape = (s) =>
+    s.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
+  const cardURL = (login) => basePath + '/c/' + encodeURIComponent(login) + '.html';
+
+  // Score: prefix match on login > prefix match on name > substring match.
+  // Returns negative score so we can sort ascending; lower is better.
+  const score = (entry, q) => {
+    const login = entry.l.toLowerCase();
+    const name = (entry.n || '').toLowerCase();
+    if (login === q) return -1000;
+    if (login.startsWith(q)) return -500 + (login.length - q.length);
+    if (name.startsWith(q)) return -300 + (name.length - q.length);
+    if (login.includes(q)) return -100 + login.indexOf(q);
+    if (name.includes(q)) return -50 + name.indexOf(q);
+    return 1; // no match
+  };
 
   const filter = (q) => {
     q = q.trim().toLowerCase();
     if (!q) {
-      // Reset: show everything that was rendered server-side, hide overflow.
-      grid.querySelectorAll('.contributor-tile').forEach(t => {
-        t.hidden = !!t.dataset.dynamic;
-        if (t.dataset.dynamic) t.remove();
-      });
-      empty.hidden = true;
+      hide();
       return;
     }
-    let shown = 0;
-    // First pass: hide tiles already rendered that don't match.
-    grid.querySelectorAll('.contributor-tile:not([data-dynamic])').forEach(t => {
-      const hay = (t.dataset.login + ' ' + t.dataset.name + ' ' + t.dataset.projects).toLowerCase();
-      const match = hay.includes(q);
-      t.hidden = !match;
-      if (match) shown++;
-    });
-    // Second pass: search the full data array for matches not yet visible.
-    grid.querySelectorAll('.contributor-tile[data-dynamic]').forEach(t => t.remove());
-    if (shown < 60) {
-      for (const c of data) {
-        if (tiles.has(c.l.toLowerCase())) continue; // already in grid
-        const hay = (c.l + ' ' + (c.n || '') + ' ' + (c.p || []).join(' ')).toLowerCase();
-        if (!hay.includes(q)) continue;
-        const li = document.createElement('li');
-        li.className = 'contributor-tile';
-        li.dataset.dynamic = '1';
-        li.dataset.login = c.l;
-        li.dataset.name = c.n || '';
-        li.dataset.projects = (c.p || []).join(' ');
-        li.innerHTML =
-          '<a href="' + basePath + '/c/' + encodeURIComponent(c.l) + '.html">' +
-          '<div class="tile-name">' + escapeHTML(c.n || c.l) + '</div>' +
-          '<div class="tile-login">@' + escapeHTML(c.l) + '</div>' +
-          '<div class="tile-stats">' + c.c + ' commits &middot; ' + (c.p || []).length + ' project' + ((c.p || []).length === 1 ? '' : 's') + '</div>' +
-          '</a>';
-        grid.appendChild(li);
-        shown++;
-        if (shown >= 60) break;
-      }
+    const ranked = [];
+    for (const e of data) {
+      const s = score(e, q);
+      if (s <= 0) ranked.push({ s, e });
     }
-    empty.hidden = shown > 0;
+    ranked.sort((a, b) => a.s - b.s);
+    current = ranked.slice(0, MAX_RESULTS).map(r => r.e);
+    render();
   };
 
-  const escapeHTML = (s) =>
-    s.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const render = () => {
+    if (!current.length) {
+      list.innerHTML = '<li class="empty-suggestions">No contributors match. Try a partial GitHub username.</li>';
+      list.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      active = -1;
+      return;
+    }
+    list.innerHTML = current.map((c, i) =>
+      '<li role="option" id="opt-' + i + '" class="suggestion" data-login="' + escape(c.l) + '"' +
+      (i === active ? ' aria-selected="true"' : '') + '>' +
+      '<span class="suggestion-name">' + escape(c.n || c.l) + '</span>' +
+      '<span class="suggestion-login">@' + escape(c.l) + '</span>' +
+      '<span class="suggestion-meta">' + c.c + ' commit' + (c.c === 1 ? '' : 's') + '</span>' +
+      '</li>'
+    ).join('');
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    if (active >= 0 && active < current.length) {
+      input.setAttribute('aria-activedescendant', 'opt-' + active);
+    } else {
+      input.removeAttribute('aria-activedescendant');
+    }
+  };
+
+  const hide = () => {
+    list.hidden = true;
+    list.innerHTML = '';
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+    active = -1;
+    current = [];
+  };
+
+  const navigate = (login) => {
+    if (!login) return;
+    window.location.href = cardURL(login);
+  };
+
+  // Mouse: click on a suggestion.
+  list.addEventListener('mousedown', (ev) => {
+    const li = ev.target.closest('.suggestion');
+    if (!li) return;
+    ev.preventDefault();           // prevent input losing focus before navigation
+    navigate(li.dataset.login);
+  });
+
+  // Keyboard: arrow keys + enter.
+  input.addEventListener('keydown', (ev) => {
+    if (list.hidden) return;
+    if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      active = Math.min(active + 1, current.length - 1);
+      render();
+    } else if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      active = Math.max(active - 1, -1);
+      render();
+    } else if (ev.key === 'Enter') {
+      ev.preventDefault();
+      if (active >= 0 && active < current.length) {
+        navigate(current[active].l);
+      } else if (current.length > 0) {
+        navigate(current[0].l);     // top match
+      } else {
+        // Best-effort: try the raw input as a login.
+        const raw = input.value.trim();
+        if (raw) navigate(raw);
+      }
+    } else if (ev.key === 'Escape') {
+      hide();
+    }
+  });
 
   let t = null;
   input.addEventListener('input', () => {
+    active = -1;
     clearTimeout(t);
-    t = setTimeout(() => filter(input.value), 80);
+    t = setTimeout(() => filter(input.value), 60);
+  });
+
+  input.addEventListener('blur', () => {
+    // Delay so a click on a suggestion still registers.
+    setTimeout(hide, 120);
+  });
+  input.addEventListener('focus', () => {
+    if (input.value.trim()) filter(input.value);
   });
 })();

@@ -1,34 +1,31 @@
 {{define "pageTitle"}}OpenSSF Contributor Card{{end}}
-{{define "pageDescription"}}Browse {{.Total}} contributors across {{len .Projects}} OpenSSF projects.{{end}}
+{{define "pageDescription"}}Find your contributor card. {{.Total}} people across {{len .Projects}} OpenSSF projects.{{end}}
 {{define "ogType"}}website{{end}}
 {{define "pageURL"}}{{.SiteURL}}/{{end}}
 {{define "ogImage"}}{{.SiteURL}}/og/index.jpg{{end}}
 
 {{define "body"}}
 <section class="hero">
-  <h1>OpenSSF Contributors</h1>
-  <p>
-    {{.Total}} people across
-    {{len .Projects}} OpenSSF projects.
-    Find yourself, share your card.
+  <img src="{{.BasePath}}/static/openssf-logo.svg" alt="OpenSSF" class="hero-logo" />
+  <h1>Contributor Card</h1>
+  <p class="lede">Find your card by GitHub username.</p>
+
+  <div class="search-wrapper">
+    <span class="search-icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    </span>
+    <input id="search" class="search" type="search" autocomplete="off" spellcheck="false"
+           placeholder="Enter GitHub username (e.g. dlorenc, puerco)…"
+           aria-label="Search by GitHub username"
+           aria-controls="suggestions"
+           aria-expanded="false" />
+    <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
+  </div>
+
+  <p class="hero-stats">
+    <strong>{{.Total}}</strong> contributors across <strong>{{len .Projects}}</strong> OpenSSF projects
   </p>
-  <input id="search" class="search" type="search" autocomplete="off" placeholder="Search by GitHub login or name…" aria-label="Search contributors">
 </section>
-
-<ul id="contributors" class="contributor-grid">
-  {{$base := .BasePath}}
-  {{range .Top}}
-  <li class="contributor-tile" data-login="{{.Login}}" data-name="{{.DisplayName}}" data-projects="{{range $i, $p := .ProjectSlugs}}{{if $i}} {{end}}{{$p}}{{end}}">
-    <a href="{{$base}}/c/{{.Login}}.html">
-      <div class="tile-name">{{or .DisplayName .Login}}</div>
-      <div class="tile-login">@{{.Login}}</div>
-      <div class="tile-stats">{{.Commits}} commits &middot; {{len .ProjectSlugs}} project{{if ne (len .ProjectSlugs) 1}}s{{end}}</div>
-    </a>
-  </li>
-  {{end}}
-</ul>
-
-<p id="empty" class="empty" hidden>No contributors match.</p>
 
 <script id="contrib-data" type="application/json">{{.SearchJSON}}</script>
 <script>window.__BASE_PATH__ = {{.BasePath}};</script>

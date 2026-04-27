@@ -161,15 +161,11 @@ func (r *Renderer) renderContributors(cs []store.ContributorAggregate) error {
 	return nil
 }
 
+// shareText returns plain text. html/template applies URL escaping in the
+// href context, so we don't pre-escape here (doing so caused double encoding).
 func shareText(c store.ContributorAggregate) string {
-	name := c.DisplayName
-	if name == "" {
-		name = "@" + c.Login
-	}
-	msg := fmt.Sprintf("My OpenSSF Contributor Card: %d commits across %d project%s.",
+	return fmt.Sprintf("My OpenSSF Contributor Card: %d commits across %d project%s.",
 		c.TotalCommits, len(c.Projects), plural(len(c.Projects)))
-	_ = name
-	return url.QueryEscape(msg)
 }
 
 func plural(n int) string {
