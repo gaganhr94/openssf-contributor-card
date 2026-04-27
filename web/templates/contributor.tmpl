@@ -80,7 +80,7 @@
   {{if .Projects}}
   <section class="card-section">
     <p class="section-title">Projects ({{len .Projects}})</p>
-    <ul class="badge-list">
+    <ul class="badge-list" data-collapsible="true">
       {{range .Projects}}
       <li class="pill"><a href="{{.URL}}" rel="noopener">{{.Name}}</a></li>
       {{end}}
@@ -91,7 +91,7 @@
   {{if .Repos}}
   <section class="card-section">
     <p class="section-title">Repositories ({{len .Repos}})</p>
-    <ul class="badge-list">
+    <ul class="badge-list" data-collapsible="true">
       {{range .Repos}}
       <li class="pill" title="{{.Total}} contribution{{if ne .Total 1}}s{{end}} ({{.Commits}} commits, {{.PRsOpened}} PRs, {{.IssuesOpened}} issues)">
         <a href="https://github.com/{{.FullName}}" rel="noopener">{{.FullName}}</a>
@@ -158,4 +158,5 @@
 </article>
 
 <script src="{{.BasePath}}/static/js/share.js" defer></script>
+<script src="{{.BasePath}}/static/js/collapse.js" defer></script>
 {{end}}

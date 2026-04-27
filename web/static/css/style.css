@@ -297,6 +297,31 @@ main { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
   list-style: none; padding: 0; margin: 0;
   display: flex; flex-wrap: wrap; gap: 0.4rem;
 }
+/* Single-line collapse mode: pills that don't fit are hidden by JS and
+   replaced with a "+N" chip. Clicking +N sets data-expanded=1 which flips
+   back to wrapping so everything is visible. */
+.badge-list[data-collapsible="true"] {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.badge-list[data-collapsible="true"] > .pill {
+  flex-shrink: 0;
+}
+.badge-list[data-collapsible="true"][data-expanded="1"] {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+.pill-more {
+  cursor: pointer;
+  background: var(--navy);
+  color: var(--surface);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  flex-shrink: 0;
+}
+.pill-more:hover { background: var(--navy-soft); }
+.pill-more:focus { outline: 2px solid var(--blue); outline-offset: 2px; }
 .pill {
   display: inline-flex;
   align-items: center;
