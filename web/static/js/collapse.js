@@ -6,11 +6,9 @@
 
   // Reserve room for a "+999"-shaped chip so it never wraps onto a second
   // line itself when we add it.
-  const RESERVE_PX = 70;
+  const RESERVE_PX = 80;
 
-  function collapse(list) {
-    if (list.dataset.expanded === '1') return;
-    // Reset prior state: unhide everything, drop any prior +N chip.
+  function reset(list) {
     Array.from(list.children).forEach(el => {
       if (el.classList.contains('pill-more')) {
         el.remove();
@@ -18,33 +16,42 @@
         el.hidden = false;
       }
     });
+  }
 
-    const items = Array.from(list.children);
+  function collapse(list) {
+    if (list.dataset.expanded === '1') return;
+    reset(list);
+
+    // No measurement to do yet — likely the row hasn't been laid out.
+    if (list.clientWidth === 0) return;
+
+    // scrollWidth is the unclipped row width; clientWidth is the visible
+    // width. If the former exceeds the latter, we have overflow.
+    if (list.scrollWidth <= list.clientWidth + 1) return;
+
+    const items = Array.from(list.children).filter(el => !el.classList.contains('pill-more'));
     if (items.length <= 1) return;
 
     const containerWidth = list.clientWidth;
-    let lastFit = -1;
+
+    // Walk forward, recording how many items we can keep visible while
+    // leaving room for the +N chip at the end.
+    let visibleCount = 0;
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      // offsetLeft + offsetWidth gives the right edge inside the parent.
       const right = it.offsetLeft + it.offsetWidth;
-      if (right > containerWidth) break;
-      lastFit = i;
+      // Reserve space for +N chip after the last visible item.
+      const isLast = i === items.length - 1;
+      const needed = isLast ? right : right + RESERVE_PX;
+      if (needed > containerWidth) break;
+      visibleCount = i + 1;
     }
+    // Always show at least one pill so the row isn't just a +N chip.
+    if (visibleCount === 0) visibleCount = 1;
 
-    if (lastFit === items.length - 1) return; // everything fits
+    if (visibleCount >= items.length) return; // everything fits
 
-    // Now ensure there's room for the +N chip without overflowing. Walk
-    // back items as long as the remaining tail + reserve doesn't fit.
-    while (lastFit >= 0) {
-      const it = items[lastFit];
-      const right = it.offsetLeft + it.offsetWidth;
-      if (right + RESERVE_PX <= containerWidth) break;
-      lastFit--;
-    }
-
-    const hidden = items.slice(lastFit + 1);
-    if (!hidden.length) return;
+    const hidden = items.slice(visibleCount);
     hidden.forEach(el => { el.hidden = true; });
 
     const more = document.createElement('li');
@@ -54,8 +61,8 @@
     more.setAttribute('aria-label', 'Show ' + hidden.length + ' more');
     more.textContent = '+' + hidden.length;
     const expand = () => {
-      Array.from(list.querySelectorAll('[hidden]')).forEach(el => { el.hidden = false; });
       list.dataset.expanded = '1';
+      Array.from(list.querySelectorAll('[hidden]')).forEach(el => { el.hidden = false; });
       more.remove();
     };
     more.addEventListener('click', expand);
@@ -70,27 +77,28 @@
 
   function run() {
     lists.forEach(list => {
-      // Only collapse if the user hasn't manually expanded.
       if (list.dataset.expanded === '1') return;
       collapse(list);
     });
   }
 
-  // Initial pass + on resize (debounced).
+  // Run early and again once everything (including fonts) is settled —
+  // pill widths can shift between DOM-ready and load.
+  const safeRun = () => requestAnimationFrame(run);
+  safeRun();
+  if (document.readyState !== 'complete') {
+    window.addEventListener('load', safeRun);
+  }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(safeRun);
+  }
+
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      // Reset expanded so resize re-collapses.
       lists.forEach(l => delete l.dataset.expanded);
-      run();
+      safeRun();
     }, 120);
   });
-
-  // Run after fonts have settled so width measurements are accurate.
-  if (document.readyState === 'complete') {
-    run();
-  } else {
-    window.addEventListener('load', run);
-  }
 })();
