@@ -1,0 +1,48 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{template "pageTitle" .}}</title>
+<meta name="description" content="{{template "pageDescription" .}}">
+
+<meta property="og:type" content="{{template "ogType" .}}">
+<meta property="og:title" content="{{template "pageTitle" .}}">
+<meta property="og:description" content="{{template "pageDescription" .}}">
+<meta property="og:url" content="{{template "pageURL" .}}">
+<meta property="og:image" content="{{template "ogImage" .}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="OpenSSF Contributor Card">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{template "pageTitle" .}}">
+<meta name="twitter:description" content="{{template "pageDescription" .}}">
+<meta name="twitter:image" content="{{template "ogImage" .}}">
+
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<header class="site-header">
+  <a href="/" class="brand">
+    <span class="brand-mark">OpenSSF</span>
+    <span class="brand-sub">Contributor Card</span>
+  </a>
+  <nav><a href="/">Browse contributors</a></nav>
+</header>
+
+<main>
+  {{template "body" .}}
+</main>
+
+<footer>
+  <p>
+    Community-built. Sourced from public GitHub data across
+    <a href="https://openssf.org/projects/">OpenSSF projects</a>.
+    Not an official OpenSSF site &mdash; see
+    <a href="https://github.com/ghr/openssf-contributor-card/blob/main/CONTRIBUTORS_OPTOUT.md">opt-out info</a>.
+  </p>
+</footer>
+</body>
+</html>{{end}}

@@ -1,0 +1,226 @@
+# OpenSSF projects and the repos that constitute each project.
+#
+# Source of truth for what `contribcard` ingests. Edit this file to add or
+# remove projects/repos. A push to `data/**` triggers a CI rebuild.
+#
+# Stages mirror openssf.org/projects: graduated | incubating | sandbox.
+# Repos are listed as "owner/name" (case as on GitHub).
+
+projects:
+  - slug: best-practices-badge
+    name: Best Practices Badge
+    maturity: graduated
+    url: https://openssf.org/projects/best-practices-badge/
+    repos:
+      - coreinfrastructure/best-practices-badge
+
+  - slug: bomctl
+    name: Bomctl
+    maturity: incubating
+    url: https://openssf.org/projects/bomctl/
+    repos:
+      - bomctl/bomctl
+
+  - slug: criticality-score
+    name: Criticality Score
+    maturity: graduated
+    url: https://openssf.org/projects/criticality-score/
+    repos:
+      - ossf/criticality_score
+
+  - slug: fuzz-introspector
+    name: Fuzz Introspector
+    maturity: sandbox
+    url: https://openssf.org/projects/fuzz-introspector/
+    repos:
+      - ossf/fuzz-introspector
+
+  - slug: gemara
+    name: Gemara
+    maturity: sandbox
+    url: https://openssf.org/projects/gemara/
+    repos:
+      - ossf/gemara
+
+  - slug: gittuf
+    name: gittuf
+    maturity: graduated
+    url: https://openssf.org/projects/gittuf/
+    repos:
+      - gittuf/gittuf
+      - gittuf/github-app
+      - gittuf/visualizer
+
+  - slug: guac
+    name: GUAC
+    maturity: graduated
+    url: https://openssf.org/projects/guac/
+    repos:
+      - guacsec/guac
+      - guacsec/guac-visualizer
+      - guacsec/sw-id-core
+
+  - slug: minder
+    name: Minder
+    maturity: incubating
+    url: https://openssf.org/projects/minder/
+    repos:
+      - mindersec/minder
+      - mindersec/minder-rules-and-profiles
+      - mindersec/minder-action
+
+  - slug: openbao
+    name: OpenBao
+    maturity: incubating
+    url: https://openssf.org/projects/openbao/
+    repos:
+      - openbao/openbao
+      - openbao/openbao-helm
+      - openbao/openbao-k8s
+      - openbao/openbao-csi-provider
+      - openbao/go-kms-wrapping
+      - openbao/devbao
+      - openbao/openbao-plugins
+      - openbao/openbao-snapshot-agent
+
+  - slug: model-signing
+    name: OpenSSF Model Signing
+    maturity: sandbox
+    url: https://openssf.org/projects/model-signing/
+    repos:
+      - ossf/model-signing-spec
+      - sigstore/model-transparency
+
+  - slug: scorecard
+    name: OpenSSF Scorecard
+    maturity: graduated
+    url: https://openssf.org/projects/scorecard/
+    repos:
+      - ossf/scorecard
+      - ossf/scorecard-action
+      - ossf/scorecard-webapp
+      - ossf/scorecard-monitor
+      - ossf/scorecard-visualizer
+
+  - slug: openvex
+    name: OpenVEX
+    maturity: sandbox
+    url: https://openssf.org/projects/openvex/
+    repos:
+      - openvex/spec
+      - openvex/go-vex
+      - openvex/vexctl
+      - openvex/discovery
+      - openvex/generate-vex
+      - openvex/setup-vexctl
+
+  - slug: osps-baseline
+    name: OSPS Baseline
+    maturity: incubating
+    url: https://openssf.org/projects/osps-baseline/
+    repos:
+      - ossf/security-baseline
+
+  - slug: oss-crs
+    name: OSS-CRS
+    maturity: sandbox
+    url: https://openssf.org/projects/oss-crs/
+    repos:
+      - ossf/oss-crs
+
+  - slug: osv-schema
+    name: OSV Schema
+    maturity: sandbox
+    url: https://openssf.org/projects/osv-schema/
+    repos:
+      - ossf/osv-schema
+
+  - slug: package-analysis
+    name: Package Analysis
+    maturity: sandbox
+    url: https://openssf.org/projects/package-analysis/
+    repos:
+      - ossf/package-analysis
+      - ossf/package-feeds
+      - ossf/malicious-packages
+
+  - slug: protobom
+    name: Protobom
+    maturity: incubating
+    url: https://openssf.org/projects/protobom/
+    repos:
+      - protobom/protobom
+      - protobom/storage
+      - protobom/sbom-convert
+      - protobom/cel
+
+  - slug: rstuf
+    name: Repository Service for TUF
+    maturity: graduated
+    url: https://openssf.org/projects/repository-service-for-tuf/
+    repos:
+      - repository-service-tuf/repository-service-tuf
+      - repository-service-tuf/repository-service-tuf-api
+      - repository-service-tuf/repository-service-tuf-cli
+      - repository-service-tuf/repository-service-tuf-worker
+
+  - slug: sbomit
+    name: SBOMit
+    maturity: sandbox
+    url: https://openssf.org/projects/sbomit/
+    repos:
+      - SBOMit/specification
+      - SBOMit/protobomit
+      - SBOMit/sbomit
+      - SBOMit/SBOMit-strace-prototype
+
+  - slug: security-insights
+    name: Security Insights
+    maturity: sandbox
+    url: https://openssf.org/projects/security-insights/
+    repos:
+      - ossf/security-insights
+
+  - slug: sigstore
+    name: Sigstore
+    maturity: graduated
+    url: https://openssf.org/projects/sigstore/
+    repos:
+      - sigstore/cosign
+      - sigstore/rekor
+      - sigstore/fulcio
+      - sigstore/sigstore
+      - sigstore/sigstore-rs
+      - sigstore/sigstore-python
+      - sigstore/sigstore-java
+      - sigstore/gitsign
+      - sigstore/policy-controller
+      - sigstore/cosign-installer
+      - sigstore/scaffolding
+      - sigstore/rekor-monitor
+      - sigstore/rekor-search-ui
+      - sigstore/helm-charts
+      - sigstore/k8s-manifest-sigstore
+      - sigstore/root-signing
+      - sigstore/helm-sigstore
+
+  - slug: slsa
+    name: SLSA
+    maturity: graduated
+    url: https://openssf.org/projects/slsa/
+    repos:
+      - slsa-framework/slsa
+      - slsa-framework/slsa-verifier
+      - slsa-framework/slsa-github-generator
+      - slsa-framework/slsa-policy
+      - slsa-framework/slsa-jenkins-generator
+      - slsa-framework/source-tool
+
+  - slug: zarf
+    name: Zarf
+    maturity: incubating
+    url: https://openssf.org/projects/zarf/
+    repos:
+      - zarf-dev/zarf
+      - zarf-dev/setup-zarf
+      - zarf-dev/zarf-injector

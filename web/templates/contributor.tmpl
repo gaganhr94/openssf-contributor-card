@@ -1,0 +1,57 @@
+{{define "pageTitle"}}{{or .DisplayName .Login}} &middot; OpenSSF Contributor{{end}}
+{{define "pageDescription"}}{{or .DisplayName .Login}} has made {{.TotalCommits}} commits across {{len .Projects}} OpenSSF project{{if ne (len .Projects) 1}}s{{end}}{{if .Rank}} (ranked #{{.Rank}} of {{.TotalContributors}}){{end}}.{{end}}
+{{define "ogType"}}profile{{end}}
+{{define "pageURL"}}{{.SiteURL}}/c/{{.Login}}.html{{end}}
+{{define "ogImage"}}{{.SiteURL}}/og/{{.Login}}.jpg{{end}}
+
+{{define "body"}}
+<article class="card">
+  <div class="card-header">
+    {{if .AvatarURL}}<img class="avatar" src="{{.AvatarURL}}" alt="{{.Login}}'s avatar" loading="lazy" width="120" height="120">{{end}}
+    <div class="identity">
+      <h1>{{or .DisplayName .Login}}</h1>
+      <p class="login">
+        <a href="{{or .ProfileURL (printf "https://github.com/%s" .Login)}}" rel="noopener">@{{.Login}}</a>
+      </p>
+      {{if .Bio}}<p class="bio">{{.Bio}}</p>{{end}}
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <div class="stat-value">{{.TotalCommits}}</div>
+      <div class="stat-label">commits</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">{{len .Projects}}</div>
+      <div class="stat-label">project{{if ne (len .Projects) 1}}s{{end}}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">#{{.Rank}}<span class="stat-of">/{{.TotalContributors}}</span></div>
+      <div class="stat-label">overall rank</div>
+    </div>
+  </div>
+
+  <h2>Contributed to</h2>
+  <ul class="project-list">
+    {{range .Projects}}
+    <li class="project project-{{.Maturity}}">
+      <a href="{{.URL}}" rel="noopener">{{.Name}}</a>
+      <span class="maturity">{{.Maturity}}</span>
+    </li>
+    {{end}}
+  </ul>
+
+  {{if not .FirstContrib.IsZero}}
+  <p class="meta">
+    First contribution {{.FirstContrib.Format "Jan 2, 2006"}}
+    &middot; latest {{.LastContrib.Format "Jan 2, 2006"}}
+  </p>
+  {{end}}
+
+  <div class="share">
+    <a class="share-btn" href="https://twitter.com/intent/tweet?text={{.ShareText}}&url={{.SiteURL}}/c/{{.Login}}.html" rel="noopener">Share on X</a>
+    <a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url={{.SiteURL}}/c/{{.Login}}.html" rel="noopener">Share on LinkedIn</a>
+  </div>
+</article>
+{{end}}

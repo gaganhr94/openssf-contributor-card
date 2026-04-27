@@ -1,0 +1,9 @@
+build.db
+build.db-shm
+build.db-wal
+.cache/
+dist/
+/contribcard
+*.test
+*.out
+.DS_Store

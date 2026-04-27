@@ -1,0 +1,34 @@
+{{define "pageTitle"}}OpenSSF Contributor Card{{end}}
+{{define "pageDescription"}}Browse {{.Total}} contributors across {{len .Projects}} OpenSSF projects.{{end}}
+{{define "ogType"}}website{{end}}
+{{define "pageURL"}}{{.SiteURL}}/{{end}}
+{{define "ogImage"}}{{.SiteURL}}/og/index.jpg{{end}}
+
+{{define "body"}}
+<section class="hero">
+  <h1>OpenSSF Contributors</h1>
+  <p>
+    {{.Total}} people across
+    {{len .Projects}} OpenSSF projects.
+    Find yourself, share your card.
+  </p>
+  <input id="search" class="search" type="search" autocomplete="off" placeholder="Search by GitHub login or name…" aria-label="Search contributors">
+</section>
+
+<ul id="contributors" class="contributor-grid">
+  {{range .Top}}
+  <li class="contributor-tile" data-login="{{.Login}}" data-name="{{.DisplayName}}" data-projects="{{range $i, $p := .ProjectSlugs}}{{if $i}} {{end}}{{$p}}{{end}}">
+    <a href="/c/{{.Login}}.html">
+      <div class="tile-name">{{or .DisplayName .Login}}</div>
+      <div class="tile-login">@{{.Login}}</div>
+      <div class="tile-stats">{{.Commits}} commits &middot; {{len .ProjectSlugs}} project{{if ne (len .ProjectSlugs) 1}}s{{end}}</div>
+    </a>
+  </li>
+  {{end}}
+</ul>
+
+<p id="empty" class="empty" hidden>No contributors match.</p>
+
+<script id="contrib-data" type="application/json">{{.SearchJSON}}</script>
+<script src="/static/js/search.js" defer></script>
+{{end}}

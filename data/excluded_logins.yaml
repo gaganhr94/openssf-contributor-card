@@ -1,0 +1,20 @@
+# Logins to exclude from contributor aggregation.
+#
+# The fetcher already drops anything matching the regex `.+\[bot\]$`, so common
+# automation accounts like dependabot[bot], renovate[bot], github-actions[bot]
+# never need to be listed here. Use this file for:
+#   - service accounts that don't have the [bot] suffix
+#   - opt-out requests from contributors (see CONTRIBUTORS_OPTOUT.md)
+#
+# One login per entry, case-insensitive.
+
+excluded:
+  # Service accounts without the [bot] suffix
+  - imgbot
+  - allcontributors
+  - mergify
+  - codecov
+  - step-security-bot
+  - copybara-service
+
+  # Opt-outs (PRs welcome, document the request in the PR body)

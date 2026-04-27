@@ -1,0 +1,94 @@
+name: build
+
+on:
+  schedule:
+    - cron: '0 6 * * *'        # daily at 06:00 UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'data/**'
+      - 'web/**'
+      - 'cmd/**'
+      - 'internal/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/build.yml'
+  pull_request:
+    paths:
+      - 'data/**'
+      - 'web/**'
+      - 'cmd/**'
+      - 'internal/**'
+      - 'go.mod'
+      - 'go.sum'
+
+# Cron runs queue (don't drop a slow build); manual dispatch preempts.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Restore SQLite cache
+        id: db-cache
+        uses: actions/cache@v4
+        with:
+          path: build.db
+          # Bumping data/projects.yaml invalidates the cache so the next
+          # build does a cold rebuild against the new repo set.
+          key: contribcard-db-v1-${{ hashFiles('data/projects.yaml') }}
+          restore-keys: |
+            contribcard-db-v1-
+
+      - name: Build CLI
+        run: go build -o contribcard ./cmd/contribcard
+
+      - name: Run pipeline
+        env:
+          # Use a project PAT if provided (5000/hr); else fall back to the
+          # workflow token (1000/hr per repo, fine once incremental cache
+          # is populated). See README "GitHub auth" for setup.
+          GH_TOKEN: ${{ secrets.CONTRIBCARD_GH_TOKEN || secrets.GITHUB_TOKEN }}
+          SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+        run: |
+          ./contribcard build --site-url "$SITE_URL" --dist dist --avatar-cache .cache/avatars
+
+      - name: Upload db artifact (cache backup)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-db
+          path: build.db
+          retention-days: 14
+
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

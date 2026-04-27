@@ -1,0 +1,113 @@
+:root {
+  --bg: #0b1020;
+  --fg: #e9eef7;
+  --muted: #97a3b6;
+  --accent: #4f8cff;
+  --accent-soft: #1c2a4a;
+  --graduated: #34c38f;
+  --incubating: #f7b955;
+  --sandbox: #9aa0a6;
+  --card: #131a2c;
+  --border: #1f2945;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.site-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: rgba(11,16,32,0.95); backdrop-filter: blur(8px);
+  z-index: 10;
+}
+.brand { display: flex; flex-direction: column; line-height: 1.1; }
+.brand-mark { font-weight: 700; font-size: 1.05rem; }
+.brand-sub { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.site-header nav a { font-size: 0.9rem; color: var(--muted); }
+
+main { max-width: 1080px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+.hero { text-align: center; margin: 2rem 0 3rem; }
+.hero h1 { font-size: 2.4rem; margin: 0 0 0.4rem; letter-spacing: -0.02em; }
+.hero p { color: var(--muted); margin: 0 0 1.5rem; }
+.search {
+  width: 100%; max-width: 520px; padding: 0.75rem 1rem;
+  background: var(--card); color: var(--fg);
+  border: 1px solid var(--border); border-radius: 999px;
+  font-size: 1rem;
+}
+.search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.contributor-grid {
+  list-style: none; padding: 0; margin: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.9rem;
+}
+.contributor-tile a {
+  display: block; padding: 1rem; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--fg);
+}
+.contributor-tile a:hover { border-color: var(--accent); text-decoration: none; }
+.tile-name { font-weight: 600; }
+.tile-login { color: var(--muted); font-size: 0.85rem; margin-top: 0.15rem; }
+.tile-stats { color: var(--muted); font-size: 0.8rem; margin-top: 0.5rem; }
+
+.empty { text-align: center; color: var(--muted); padding: 3rem 0; }
+
+/* Card page */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 2rem; max-width: 720px; margin: 0 auto;
+}
+.card-header { display: flex; gap: 1.25rem; align-items: center; margin-bottom: 1.5rem; }
+.avatar { width: 96px; height: 96px; border-radius: 50%; border: 2px solid var(--border); }
+.identity h1 { margin: 0 0 0.15rem; font-size: 1.6rem; letter-spacing: -0.01em; }
+.login { margin: 0; color: var(--muted); }
+.bio { margin: 0.5rem 0 0; color: var(--muted); }
+
+.stat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin: 1.5rem 0 2rem;
+}
+.stat {
+  background: var(--accent-soft); border-radius: 10px; padding: 0.9rem;
+  text-align: center;
+}
+.stat-value { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; }
+.stat-of { font-size: 0.85rem; color: var(--muted); font-weight: 400; margin-left: 0.1em; }
+.stat-label { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-top: 1rem; }
+
+.project-list { list-style: none; padding: 0; margin: 0.5rem 0 1.5rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.project {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.4rem 0.7rem; background: var(--accent-soft);
+  border-radius: 999px; font-size: 0.85rem;
+}
+.project a { color: var(--fg); }
+.maturity { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.project-graduated  .maturity { color: var(--graduated); }
+.project-incubating .maturity { color: var(--incubating); }
+.project-sandbox    .maturity { color: var(--sandbox); }
+
+.meta { color: var(--muted); font-size: 0.85rem; }
+
+.share { margin-top: 1.5rem; display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.share-btn {
+  padding: 0.55rem 1rem; border-radius: 999px;
+  background: var(--accent); color: white;
+  font-size: 0.85rem; font-weight: 500;
+}
+.share-btn:hover { text-decoration: none; opacity: 0.92; }
+
+footer {
+  border-top: 1px solid var(--border); padding: 2rem 1.5rem; margin-top: 3rem;
+  text-align: center; color: var(--muted); font-size: 0.85rem;
+}
