@@ -54,6 +54,22 @@ func (s *Store) migrate(ctx context.Context) error {
 			return fmt.Errorf("add issues_opened column: %w", err)
 		}
 	}
+	// Older builds wrote Go's zero time as the literal text
+	// "0001-01-01T00:00:00Z" into first_commit_at/last_commit_at when a
+	// contributor only had PRs/issues. Replace those with NULL so MIN/MAX
+	// upserts can later backfill them with real timestamps.
+	if _, err := s.DB.ExecContext(ctx,
+		`UPDATE contributions SET first_commit_at = NULL
+		 WHERE first_commit_at IS NOT NULL
+		   AND first_commit_at LIKE '0001-01-01%'`); err != nil {
+		return fmt.Errorf("clear zero first_commit_at: %w", err)
+	}
+	if _, err := s.DB.ExecContext(ctx,
+		`UPDATE contributions SET last_commit_at = NULL
+		 WHERE last_commit_at IS NOT NULL
+		   AND last_commit_at LIKE '0001-01-01%'`); err != nil {
+		return fmt.Errorf("clear zero last_commit_at: %w", err)
+	}
 	if _, err := s.DB.ExecContext(ctx,
 		`INSERT INTO build_meta(key, value) VALUES('schema_version', ?)
 		 ON CONFLICT(key) DO UPDATE SET value=excluded.value`, SchemaVersion); err != nil {

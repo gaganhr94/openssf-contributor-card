@@ -138,6 +138,16 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 			if p.Merged {
 				a.prsMerged++
 			}
+			// PR/issue authorship counts as a contribution too — without
+			// this, contributors who only opened PRs or issues had zero
+			// firstAt/lastAt, which hid both the "First contribution" and
+			// "Years contributing" sections on their card.
+			if a.firstAt.IsZero() || p.CreatedAt.Before(a.firstAt) {
+				a.firstAt = p.CreatedAt
+			}
+			if p.CreatedAt.After(a.lastAt) {
+				a.lastAt = p.CreatedAt
+			}
 		}
 
 		// 3. Issues.
@@ -151,6 +161,12 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 				continue
 			}
 			a.issuesOpened++
+			if a.firstAt.IsZero() || is.CreatedAt.Before(a.firstAt) {
+				a.firstAt = is.CreatedAt
+			}
+			if is.CreatedAt.After(a.lastAt) {
+				a.lastAt = is.CreatedAt
+			}
 		}
 
 		// Persist this repo's batch in a single transaction.

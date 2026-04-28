@@ -53,9 +53,9 @@ jobs:
           # forces a cold rebuild. Bump the prefix (v2 -> v3 ...) when you
           # specifically want to invalidate cached data without touching
           # schema.
-          key: contribcard-db-v2-${{ hashFiles('data/projects.yaml', 'internal/store/schema.sql', 'internal/store/store.go') }}
+          key: contribcard-db-v3-${{ hashFiles('data/projects.yaml', 'internal/store/schema.sql', 'internal/store/store.go') }}
           restore-keys: |
-            contribcard-db-v2-
+            contribcard-db-v3-
 
       - name: Build CLI
         run: go build -o contribcard ./cmd/contribcard

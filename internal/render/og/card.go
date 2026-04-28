@@ -54,13 +54,15 @@ type Renderer struct {
 	avatars  *avatar.Cache
 	siteName string
 
-	regular font.Face
-	bold    font.Face
-	xlBold  font.Face
-	stat    font.Face
-	mono    font.Face // unused for now, reserved for stat numerals
-	once    sync.Once
-	initErr error
+	regular   font.Face
+	bold      font.Face
+	xlBold    font.Face
+	stat      font.Face
+	smallBold font.Face
+	tileLabel font.Face
+	mono      font.Face // unused for now, reserved for stat numerals
+	once      sync.Once
+	initErr   error
 }
 
 func New(outDir string, avatars *avatar.Cache) *Renderer {
@@ -148,8 +150,8 @@ func (r *Renderer) Render(ctx context.Context, c store.ContributorAggregate) err
 	}
 
 	// Stat tiles: 4 across (commits / PRs / issues / total contributions).
-	tileY := avatarY + avatarSize + 40
-	tileH := 130.0
+	tileY := avatarY + avatarSize + 30
+	tileH := 110.0
 	tileGap := 18.0
 	tileW := (cardWidth - 80*2 - tileGap*3) / 4
 	r.drawStatTile(dc, 80, tileY, tileW, tileH,
@@ -161,8 +163,19 @@ func (r *Renderer) Render(ctx context.Context, c store.ContributorAggregate) err
 	r.drawStatTile(dc, 80+(tileW+tileGap)*3, tileY, tileW, tileH,
 		fmt.Sprintf("%d", c.TotalContributions), "contributions", true)
 
-	// Project pills
-	pillY := tileY + tileH + 30
+	// "PROJECTS (N)" section header above the pill row. The 22pt label is
+	// drawn anchored at vertical centre, so labelY is the label's middle —
+	// add ~labelHeight/2 of gap on each side rather than measuring against
+	// edges. Pills are 56px tall and the card is 630px, so pillY+56 must
+	// stay under 630; the values below leave ~9px bottom margin.
+	labelY := tileY + tileH + 45
+	dc.SetColor(colorMuted)
+	dc.SetFontFace(r.smallBold)
+	projectLabel := fmt.Sprintf("PROJECTS (%d)", len(c.Projects))
+	dc.DrawStringAnchored(projectLabel, 80, labelY, 0, 0.5)
+
+	// Project pills below the label.
+	pillY := labelY + 30
 	r.drawProjectPills(dc, 80, pillY, c.Projects)
 
 	dst := filepath.Join(r.outDir, "og", c.Login+".jpg")
@@ -253,7 +266,9 @@ func (r *Renderer) init() error {
 		r.regular = mustNewFace(reg, 28)
 		r.bold = mustNewFace(bold, 32)
 		r.xlBold = mustNewFace(bold, 56)
-		r.stat = mustNewFace(bold, 72)
+		r.stat = mustNewFace(bold, 58)
+		r.smallBold = mustNewFace(bold, 22)
+		r.tileLabel = mustNewFace(bold, 22)
 	})
 	return r.initErr
 }
@@ -274,21 +289,24 @@ func (r *Renderer) drawStatTile(dc *gg.Context, x, y, w, h float64, value, label
 	dc.DrawRoundedRectangle(x, y, w, h, 14)
 	dc.Fill()
 
+	// Number in the upper portion of the tile, label in the lower portion,
+	// with a clear gap between them. With h=110, 64pt number, and 22pt label,
+	// the gap is ~10px.
 	if highlight {
 		dc.SetColor(color.White)
 	} else {
 		dc.SetColor(colorFG)
 	}
 	dc.SetFontFace(r.stat)
-	dc.DrawStringAnchored(value, x+w/2, y+h/2-12, 0.5, 0.5)
+	dc.DrawStringAnchored(value, x+w/2, y+h*0.38, 0.5, 0.5)
 
 	if highlight {
-		dc.SetColor(color.RGBA{0xff, 0xff, 0xff, 0xb4}) // ~70% white
+		dc.SetColor(color.RGBA{0xff, 0xff, 0xff, 0xcc}) // ~80% white
 	} else {
 		dc.SetColor(colorMuted)
 	}
-	dc.SetFontFace(r.regular)
-	dc.DrawStringAnchored(strings.ToUpper(label), x+w/2, y+h-30, 0.5, 0.5)
+	dc.SetFontFace(r.tileLabel)
+	dc.DrawStringAnchored(strings.ToUpper(label), x+w/2, y+h*0.83, 0.5, 0.5)
 }
 
 func (r *Renderer) drawProjectPills(dc *gg.Context, x, y float64, projects []store.ProjectSummary) {

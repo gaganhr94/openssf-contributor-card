@@ -70,6 +70,9 @@ func (s *Store) ApplyRepoContributions(ctx context.Context, tx *sql.Tx, rs []Rep
 		}
 	}
 
+	// SQLite's MIN/MAX scalar functions return NULL if any argument is NULL,
+	// so we COALESCE on both sides to make incremental upserts backfill an
+	// existing NULL with whichever timestamp is non-NULL.
 	var q string
 	if replace {
 		q = `
@@ -97,18 +100,37 @@ func (s *Store) ApplyRepoContributions(ctx context.Context, tx *sql.Tx, rs []Rep
 			prs_opened      = contributions.prs_opened    + excluded.prs_opened,
 			prs_merged      = contributions.prs_merged    + excluded.prs_merged,
 			issues_opened   = contributions.issues_opened + excluded.issues_opened,
-			first_commit_at = MIN(contributions.first_commit_at, excluded.first_commit_at),
-			last_commit_at  = MAX(contributions.last_commit_at, excluded.last_commit_at)`
+			first_commit_at = MIN(
+				COALESCE(contributions.first_commit_at, excluded.first_commit_at),
+				COALESCE(excluded.first_commit_at, contributions.first_commit_at)
+			),
+			last_commit_at  = MAX(
+				COALESCE(contributions.last_commit_at, excluded.last_commit_at),
+				COALESCE(excluded.last_commit_at, contributions.last_commit_at)
+			)`
 	}
 	for _, r := range rs {
+		// Pass zero time as NULL so it doesn't get serialized as the
+		// "0001-01-01T00:00:00Z" sentinel — that string would
+		// lexicographically beat real dates in MIN() and pin a row to the
+		// past forever.
+		first := nullableTime(r.FirstCommitAt)
+		last := nullableTime(r.LastCommitAt)
 		if _, err := tx.ExecContext(ctx, q,
 			r.RepoFullName, r.ContributorLogin,
 			r.Commits, r.PRsOpened, r.PRsMerged, r.IssuesOpened,
-			r.FirstCommitAt, r.LastCommitAt); err != nil {
+			first, last); err != nil {
 			return fmt.Errorf("apply contribution %s/%s: %w", r.RepoFullName, r.ContributorLogin, err)
 		}
 	}
 	return nil
+}
+
+func nullableTime(t time.Time) any {
+	if t.IsZero() {
+		return nil
+	}
+	return t
 }
 
 // UpdateRepoMetadata records what we just fetched so the next run can do an

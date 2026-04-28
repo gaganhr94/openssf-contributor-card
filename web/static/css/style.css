@@ -319,18 +319,21 @@ main {
   list-style: none; padding: 0; margin: 0;
   display: flex; flex-wrap: wrap; gap: 0.4rem;
 }
-/* Single-line collapse mode: pills that don't fit are hidden by JS and
-   replaced with a "+N" chip. Clicking +N sets data-expanded=1 which flips
-   back to wrapping so everything is visible. */
+/* Single-line collapse mode: pills wrap naturally so JS can read which
+   ones land on line 2+ via getBoundingClientRect().top, then it hides
+   them and adds a "+N more" chip. max-height clips the visual overflow
+   so the user only sees one row until they click +N. Once expanded,
+   data-expanded=1 lifts the cap. The 2.6em fits one row of pills (pill
+   font 0.95rem * 1.55 line-height + 0.4rem * 2 padding + 2px border). */
 .badge-list[data-collapsible="true"] {
-  flex-wrap: nowrap;
+  max-height: 2.6em;
   overflow: hidden;
 }
 .badge-list[data-collapsible="true"] > .pill {
   flex-shrink: 0;
 }
 .badge-list[data-collapsible="true"][data-expanded="1"] {
-  flex-wrap: wrap;
+  max-height: none;
   overflow: visible;
 }
 .pill-more {
@@ -356,6 +359,11 @@ main {
   font-size: 0.95rem;
   transition: border-color 0.15s, background 0.15s;
 }
+/* The .pill rule above has the same specificity as the UA's
+   `[hidden] { display: none }` and wins by being later — without this
+   override, JS-hidden pills still occupy layout space, which pushed the
+   "+N more" chip past the container edge and made it invisible. */
+.pill[hidden] { display: none; }
 .pill a { color: inherit; }
 .pill:hover { border-color: var(--blue); background: var(--surface); }
 .pill-year {
