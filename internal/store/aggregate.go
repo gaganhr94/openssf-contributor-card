@@ -31,6 +31,8 @@ type RepoStat struct {
 type FirstContribution struct {
 	RepoFullName string
 	At           time.Time
+	Kind         string // 'commit' | 'pr' | 'issue', empty if not yet backfilled
+	URL          string // direct GitHub URL to the event
 }
 
 // ContributorAggregate is the per-contributor view used to render a card.
@@ -234,11 +236,13 @@ func (s *Store) contributorRepos(ctx context.Context) (map[string][]RepoStat, er
 	return out, rows.Err()
 }
 
-// contributorFirstContributions returns a map from login -> the (repo, ts)
-// of that contributor's earliest observed activity.
+// contributorFirstContributions returns a map from login -> the (repo, ts,
+// kind, url) of that contributor's earliest observed activity.
 func (s *Store) contributorFirstContributions(ctx context.Context) (map[string]FirstContribution, error) {
 	const q = `
-		SELECT contributor_login, repo_full_name, first_commit_at
+		SELECT contributor_login, repo_full_name, first_commit_at,
+		       COALESCE(first_contribution_kind, ''),
+		       COALESCE(first_contribution_url, '')
 		FROM contributions
 		WHERE first_commit_at IS NOT NULL AND first_commit_at <> ''
 		ORDER BY contributor_login, first_commit_at ASC`
@@ -249,8 +253,8 @@ func (s *Store) contributorFirstContributions(ctx context.Context) (map[string]F
 	defer rows.Close()
 	out := map[string]FirstContribution{}
 	for rows.Next() {
-		var login, repo, first string
-		if err := rows.Scan(&login, &repo, &first); err != nil {
+		var login, repo, first, kind, url string
+		if err := rows.Scan(&login, &repo, &first, &kind, &url); err != nil {
 			return nil, err
 		}
 		// First row per login (ordered ASC) wins; subsequent rows skipped.
@@ -260,6 +264,8 @@ func (s *Store) contributorFirstContributions(ctx context.Context) (map[string]F
 		out[login] = FirstContribution{
 			RepoFullName: repo,
 			At:           parseSQLiteTime(first),
+			Kind:         kind,
+			URL:          url,
 		}
 	}
 	return out, rows.Err()

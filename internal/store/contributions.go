@@ -42,14 +42,16 @@ func (s *Store) UpsertContributors(ctx context.Context, tx *sql.Tx, cs []Contrib
 // out of a single fetch. ApplyRepoContributions adds these counts onto any
 // existing row (incremental fetches just contribute deltas).
 type RepoContribution struct {
-	RepoFullName     string
-	ContributorLogin string
-	Commits          int
-	PRsOpened        int
-	PRsMerged        int
-	IssuesOpened     int
-	FirstCommitAt    time.Time
-	LastCommitAt     time.Time
+	RepoFullName          string
+	ContributorLogin      string
+	Commits               int
+	PRsOpened             int
+	PRsMerged             int
+	IssuesOpened          int
+	FirstCommitAt         time.Time
+	LastCommitAt          time.Time
+	FirstContributionKind string // 'commit' | 'pr' | 'issue', empty if unknown
+	FirstContributionURL  string // direct GitHub URL to that event
 }
 
 // ApplyRepoContributions adds (or initializes) per-repo per-contributor stats.
@@ -73,28 +75,36 @@ func (s *Store) ApplyRepoContributions(ctx context.Context, tx *sql.Tx, rs []Rep
 	// SQLite's MIN/MAX scalar functions return NULL if any argument is NULL,
 	// so we COALESCE on both sides to make incremental upserts backfill an
 	// existing NULL with whichever timestamp is non-NULL.
+	// Incremental upserts only overwrite first_contribution_kind/url when the
+	// new excluded.first_commit_at is strictly earlier than the stored one.
+	// Otherwise the existing row's metadata wins, so a later fetch can't
+	// clobber the true earliest event with something newer it happened to see.
 	var q string
 	if replace {
 		q = `
 		INSERT INTO contributions (
 			repo_full_name, contributor_login,
 			commits, prs_opened, prs_merged, issues_opened,
-			first_commit_at, last_commit_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			first_commit_at, last_commit_at,
+			first_contribution_kind, first_contribution_url)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(repo_full_name, contributor_login) DO UPDATE SET
-			commits         = excluded.commits,
-			prs_opened      = excluded.prs_opened,
-			prs_merged      = excluded.prs_merged,
-			issues_opened   = excluded.issues_opened,
-			first_commit_at = excluded.first_commit_at,
-			last_commit_at  = excluded.last_commit_at`
+			commits                  = excluded.commits,
+			prs_opened               = excluded.prs_opened,
+			prs_merged               = excluded.prs_merged,
+			issues_opened            = excluded.issues_opened,
+			first_commit_at          = excluded.first_commit_at,
+			last_commit_at           = excluded.last_commit_at,
+			first_contribution_kind  = excluded.first_contribution_kind,
+			first_contribution_url   = excluded.first_contribution_url`
 	} else {
 		q = `
 		INSERT INTO contributions (
 			repo_full_name, contributor_login,
 			commits, prs_opened, prs_merged, issues_opened,
-			first_commit_at, last_commit_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			first_commit_at, last_commit_at,
+			first_contribution_kind, first_contribution_url)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(repo_full_name, contributor_login) DO UPDATE SET
 			commits         = contributions.commits       + excluded.commits,
 			prs_opened      = contributions.prs_opened    + excluded.prs_opened,
@@ -107,7 +117,21 @@ func (s *Store) ApplyRepoContributions(ctx context.Context, tx *sql.Tx, rs []Rep
 			last_commit_at  = MAX(
 				COALESCE(contributions.last_commit_at, excluded.last_commit_at),
 				COALESCE(excluded.last_commit_at, contributions.last_commit_at)
-			)`
+			),
+			first_contribution_kind = CASE
+				WHEN excluded.first_commit_at IS NOT NULL
+				 AND (contributions.first_commit_at IS NULL
+				      OR excluded.first_commit_at < contributions.first_commit_at)
+				THEN excluded.first_contribution_kind
+				ELSE contributions.first_contribution_kind
+			END,
+			first_contribution_url = CASE
+				WHEN excluded.first_commit_at IS NOT NULL
+				 AND (contributions.first_commit_at IS NULL
+				      OR excluded.first_commit_at < contributions.first_commit_at)
+				THEN excluded.first_contribution_url
+				ELSE contributions.first_contribution_url
+			END`
 	}
 	for _, r := range rs {
 		// Pass zero time as NULL so it doesn't get serialized as the
@@ -116,14 +140,23 @@ func (s *Store) ApplyRepoContributions(ctx context.Context, tx *sql.Tx, rs []Rep
 		// past forever.
 		first := nullableTime(r.FirstCommitAt)
 		last := nullableTime(r.LastCommitAt)
+		kind := nullableString(r.FirstContributionKind)
+		url := nullableString(r.FirstContributionURL)
 		if _, err := tx.ExecContext(ctx, q,
 			r.RepoFullName, r.ContributorLogin,
 			r.Commits, r.PRsOpened, r.PRsMerged, r.IssuesOpened,
-			first, last); err != nil {
+			first, last, kind, url); err != nil {
 			return fmt.Errorf("apply contribution %s/%s: %w", r.RepoFullName, r.ContributorLogin, err)
 		}
 	}
 	return nil
+}
+
+func nullableString(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
 }
 
 func nullableTime(t time.Time) any {

@@ -22,6 +22,7 @@ type CommitAuthor struct {
 
 type Commit struct {
 	OID           string
+	URL           string // direct GitHub URL to this commit
 	CommittedDate time.Time
 	Author        *CommitAuthor // nil for un-linked commits
 }
@@ -53,6 +54,7 @@ query RepoCommits($owner: String!, $name: String!, $cursor: String, $since: GitT
             pageInfo { endCursor hasNextPage }
             nodes {
               oid
+              url
               committedDate
               author {
                 user {
@@ -86,6 +88,7 @@ type repoCommitsResp struct {
 					} `json:"pageInfo"`
 					Nodes []struct {
 						OID           string    `json:"oid"`
+						URL           string    `json:"url"`
 						CommittedDate time.Time `json:"committedDate"`
 						Author        *struct {
 							User *struct {
@@ -141,7 +144,7 @@ func (c *Client) FetchCommits(ctx context.Context, opts FetchCommitsOpts) (*Fetc
 		}
 
 		for _, n := range ref.Target.History.Nodes {
-			commit := Commit{OID: n.OID, CommittedDate: n.CommittedDate}
+			commit := Commit{OID: n.OID, URL: n.URL, CommittedDate: n.CommittedDate}
 			if n.Author != nil && n.Author.User != nil {
 				commit.Author = &CommitAuthor{
 					Login:     n.Author.User.Login,
@@ -178,6 +181,7 @@ func (c *Client) FetchCommits(ctx context.Context, opts FetchCommitsOpts) (*Fetc
 type PRRecord struct {
 	CreatedAt time.Time
 	Merged    bool
+	URL       string // direct GitHub URL to the PR
 	Author    *CommitAuthor
 }
 
@@ -185,6 +189,7 @@ type PRRecord struct {
 // GraphQL's `issues` connection, so this is non-overlapping with PRRecord.
 type IssueRecord struct {
 	CreatedAt time.Time
+	URL       string // direct GitHub URL to the issue
 	Author    *CommitAuthor
 }
 
@@ -196,6 +201,7 @@ query RepoPRs($owner: String!, $name: String!, $cursor: String) {
       nodes {
         createdAt
         merged
+        url
         author {
           login
           ... on User { name avatarUrl url bio }
@@ -216,6 +222,7 @@ type repoPRsResp struct {
 			Nodes []struct {
 				CreatedAt time.Time `json:"createdAt"`
 				Merged    bool      `json:"merged"`
+				URL       string    `json:"url"`
 				Author    *struct {
 					Login     string `json:"login"`
 					Name      string `json:"name"`
@@ -251,7 +258,7 @@ func (c *Client) FetchPRs(ctx context.Context, owner, name string, since time.Ti
 				stop = true
 				break
 			}
-			rec := PRRecord{CreatedAt: n.CreatedAt, Merged: n.Merged}
+			rec := PRRecord{CreatedAt: n.CreatedAt, Merged: n.Merged, URL: n.URL}
 			if n.Author != nil && n.Author.Login != "" {
 				rec.Author = &CommitAuthor{
 					Login:     n.Author.Login,
@@ -287,6 +294,7 @@ query RepoIssues($owner: String!, $name: String!, $cursor: String) {
       pageInfo { endCursor hasNextPage }
       nodes {
         createdAt
+        url
         author {
           login
           ... on User { name avatarUrl url bio }
@@ -306,6 +314,7 @@ type repoIssuesResp struct {
 			} `json:"pageInfo"`
 			Nodes []struct {
 				CreatedAt time.Time `json:"createdAt"`
+				URL       string    `json:"url"`
 				Author    *struct {
 					Login     string `json:"login"`
 					Name      string `json:"name"`
@@ -341,7 +350,7 @@ func (c *Client) FetchIssues(ctx context.Context, owner, name string, since time
 				stop = true
 				break
 			}
-			rec := IssueRecord{CreatedAt: n.CreatedAt}
+			rec := IssueRecord{CreatedAt: n.CreatedAt, URL: n.URL}
 			if n.Author != nil && n.Author.Login != "" {
 				rec.Author = &CommitAuthor{
 					Login:     n.Author.Login,

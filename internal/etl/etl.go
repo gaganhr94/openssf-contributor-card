@@ -77,9 +77,26 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 			issuesOpened int
 			firstAt      time.Time
 			lastAt       time.Time
+			firstKind    string // 'commit' | 'pr' | 'issue'
+			firstURL     string
 			years        map[int]struct{}
 		}
 		byLogin := map[string]*agg{}
+
+		// noteFirst updates firstAt/firstKind/firstURL if `at` is the new
+		// earliest event. Used by the commit/PR/issue passes below so the
+		// stored "first contribution" link points to whichever of the three
+		// happened first.
+		noteFirst := func(a *agg, at time.Time, kind, url string) {
+			if at.IsZero() {
+				return
+			}
+			if a.firstAt.IsZero() || at.Before(a.firstAt) {
+				a.firstAt = at
+				a.firstKind = kind
+				a.firstURL = url
+			}
+		}
 
 		ensure := func(author *github.CommitAuthor) *agg {
 			if author == nil || author.Login == "" {
@@ -118,9 +135,7 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 				continue
 			}
 			a.commits++
-			if a.firstAt.IsZero() || c.CommittedDate.Before(a.firstAt) {
-				a.firstAt = c.CommittedDate
-			}
+			noteFirst(a, c.CommittedDate, "commit", c.URL)
 			if c.CommittedDate.After(a.lastAt) {
 				a.lastAt = c.CommittedDate
 			}
@@ -147,9 +162,7 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 			// this, contributors who only opened PRs or issues had zero
 			// firstAt/lastAt, which hid both the "First contribution" and
 			// "Years contributing" sections on their card.
-			if a.firstAt.IsZero() || p.CreatedAt.Before(a.firstAt) {
-				a.firstAt = p.CreatedAt
-			}
+			noteFirst(a, p.CreatedAt, "pr", p.URL)
 			if p.CreatedAt.After(a.lastAt) {
 				a.lastAt = p.CreatedAt
 			}
@@ -169,9 +182,7 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 				continue
 			}
 			a.issuesOpened++
-			if a.firstAt.IsZero() || is.CreatedAt.Before(a.firstAt) {
-				a.firstAt = is.CreatedAt
-			}
+			noteFirst(a, is.CreatedAt, "issue", is.URL)
 			if is.CreatedAt.After(a.lastAt) {
 				a.lastAt = is.CreatedAt
 			}
@@ -191,14 +202,16 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 		for login, a := range byLogin {
 			contribs = append(contribs, a.contrib)
 			rows = append(rows, store.RepoContribution{
-				RepoFullName:     r.FullName,
-				ContributorLogin: login,
-				Commits:          a.commits,
-				PRsOpened:        a.prsOpened,
-				PRsMerged:        a.prsMerged,
-				IssuesOpened:     a.issuesOpened,
-				FirstCommitAt:    a.firstAt,
-				LastCommitAt:     a.lastAt,
+				RepoFullName:          r.FullName,
+				ContributorLogin:      login,
+				Commits:               a.commits,
+				PRsOpened:             a.prsOpened,
+				PRsMerged:             a.prsMerged,
+				IssuesOpened:          a.issuesOpened,
+				FirstCommitAt:         a.firstAt,
+				LastCommitAt:          a.lastAt,
+				FirstContributionKind: a.firstKind,
+				FirstContributionURL:  a.firstURL,
 			})
 			for y := range a.years {
 				yearRows = append(yearRows, store.ContributionYear{

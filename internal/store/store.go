@@ -14,7 +14,7 @@ import (
 //go:embed schema.sql
 var schemaSQL string
 
-const SchemaVersion = "3"
+const SchemaVersion = "4"
 
 type Store struct {
 	DB *sql.DB
@@ -54,6 +54,14 @@ func (s *Store) migrate(ctx context.Context) error {
 			return fmt.Errorf("add issues_opened column: %w", err)
 		}
 	}
+	for _, col := range []string{"first_contribution_kind", "first_contribution_url"} {
+		stmt := fmt.Sprintf(`ALTER TABLE contributions ADD COLUMN %s TEXT`, col)
+		if _, err := s.DB.ExecContext(ctx, stmt); err != nil {
+			if !strings.Contains(err.Error(), "duplicate column") {
+				return fmt.Errorf("add %s column: %w", col, err)
+			}
+		}
+	}
 	// Older builds wrote Go's zero time as the literal text
 	// "0001-01-01T00:00:00Z" into first_commit_at/last_commit_at when a
 	// contributor only had PRs/issues. Replace those with NULL so MIN/MAX
@@ -70,21 +78,19 @@ func (s *Store) migrate(ctx context.Context) error {
 		   AND last_commit_at LIKE '0001-01-01%'`); err != nil {
 		return fmt.Errorf("clear zero last_commit_at: %w", err)
 	}
-	// v3 introduced the contribution_years table. DBs already populated under
-	// v2 won't have any rows there — incremental fetches only see new activity,
-	// so without intervention the "Years contributing" pill row would go blank
-	// for existing contributors until they did something new. Force a one-time
-	// full re-fetch of every repo by clearing last_fetched_at when we see a
-	// pre-v3 schema marker.
+	// v3 introduced the contribution_years table; v4 introduced
+	// first_contribution_kind/url. Both rely on per-event metadata that
+	// incremental fetches won't backfill. Force a one-time full re-fetch
+	// of every repo when the stored schema_version predates the latest.
 	var prevVersion sql.NullString
 	if err := s.DB.QueryRowContext(ctx,
 		`SELECT value FROM build_meta WHERE key = 'schema_version'`).Scan(&prevVersion); err != nil && err != sql.ErrNoRows {
 		return fmt.Errorf("read schema_version: %w", err)
 	}
-	if prevVersion.Valid && prevVersion.String != "" && prevVersion.String < "3" {
+	if prevVersion.Valid && prevVersion.String != "" && prevVersion.String < SchemaVersion {
 		if _, err := s.DB.ExecContext(ctx,
 			`UPDATE repos SET last_fetched_at = NULL`); err != nil {
-			return fmt.Errorf("reset last_fetched_at for v3 backfill: %w", err)
+			return fmt.Errorf("reset last_fetched_at for schema upgrade: %w", err)
 		}
 	}
 	if _, err := s.DB.ExecContext(ctx,

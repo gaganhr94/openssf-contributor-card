@@ -28,14 +28,19 @@ CREATE TABLE IF NOT EXISTS contributors (
 );
 
 CREATE TABLE IF NOT EXISTS contributions (
-    repo_full_name     TEXT NOT NULL REFERENCES repos(full_name) ON DELETE CASCADE,
-    contributor_login  TEXT NOT NULL REFERENCES contributors(login) ON DELETE CASCADE,
-    commits            INTEGER NOT NULL DEFAULT 0,
-    prs_opened         INTEGER NOT NULL DEFAULT 0,
-    prs_merged         INTEGER NOT NULL DEFAULT 0,
-    issues_opened      INTEGER NOT NULL DEFAULT 0,
-    first_commit_at    DATETIME,
-    last_commit_at     DATETIME,
+    repo_full_name           TEXT NOT NULL REFERENCES repos(full_name) ON DELETE CASCADE,
+    contributor_login        TEXT NOT NULL REFERENCES contributors(login) ON DELETE CASCADE,
+    commits                  INTEGER NOT NULL DEFAULT 0,
+    prs_opened               INTEGER NOT NULL DEFAULT 0,
+    prs_merged               INTEGER NOT NULL DEFAULT 0,
+    issues_opened            INTEGER NOT NULL DEFAULT 0,
+    first_commit_at          DATETIME,
+    last_commit_at           DATETIME,
+    -- Type and direct URL of whatever event corresponds to first_commit_at.
+    -- Kind is one of: 'commit', 'pr', 'issue'. NULL on rows written before
+    -- v4 schema; backfilled on the next full re-fetch.
+    first_contribution_kind  TEXT,
+    first_contribution_url   TEXT,
     PRIMARY KEY (repo_full_name, contributor_login)
 );
 CREATE INDEX IF NOT EXISTS idx_contributions_login ON contributions(contributor_login);
