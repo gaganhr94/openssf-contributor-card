@@ -41,6 +41,18 @@ CREATE TABLE IF NOT EXISTS contributions (
 CREATE INDEX IF NOT EXISTS idx_contributions_login ON contributions(contributor_login);
 CREATE INDEX IF NOT EXISTS idx_contributions_repo  ON contributions(repo_full_name);
 
+-- One row per (repo, contributor, year) the contributor was actually active in.
+-- Populated from commit committedDate / PR createdAt / issue createdAt during
+-- ingestion. Used by the "Years contributing" pill row so we show real years
+-- of activity rather than an inclusive range that fills in gap years.
+CREATE TABLE IF NOT EXISTS contribution_years (
+    repo_full_name     TEXT NOT NULL REFERENCES repos(full_name) ON DELETE CASCADE,
+    contributor_login  TEXT NOT NULL REFERENCES contributors(login) ON DELETE CASCADE,
+    year               INTEGER NOT NULL,
+    PRIMARY KEY (repo_full_name, contributor_login, year)
+);
+CREATE INDEX IF NOT EXISTS idx_contribution_years_login ON contribution_years(contributor_login);
+
 CREATE TABLE IF NOT EXISTS build_meta (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL

@@ -14,7 +14,7 @@ import (
 //go:embed schema.sql
 var schemaSQL string
 
-const SchemaVersion = "2"
+const SchemaVersion = "3"
 
 type Store struct {
 	DB *sql.DB
@@ -69,6 +69,23 @@ func (s *Store) migrate(ctx context.Context) error {
 		 WHERE last_commit_at IS NOT NULL
 		   AND last_commit_at LIKE '0001-01-01%'`); err != nil {
 		return fmt.Errorf("clear zero last_commit_at: %w", err)
+	}
+	// v3 introduced the contribution_years table. DBs already populated under
+	// v2 won't have any rows there — incremental fetches only see new activity,
+	// so without intervention the "Years contributing" pill row would go blank
+	// for existing contributors until they did something new. Force a one-time
+	// full re-fetch of every repo by clearing last_fetched_at when we see a
+	// pre-v3 schema marker.
+	var prevVersion sql.NullString
+	if err := s.DB.QueryRowContext(ctx,
+		`SELECT value FROM build_meta WHERE key = 'schema_version'`).Scan(&prevVersion); err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("read schema_version: %w", err)
+	}
+	if prevVersion.Valid && prevVersion.String != "" && prevVersion.String < "3" {
+		if _, err := s.DB.ExecContext(ctx,
+			`UPDATE repos SET last_fetched_at = NULL`); err != nil {
+			return fmt.Errorf("reset last_fetched_at for v3 backfill: %w", err)
+		}
 	}
 	if _, err := s.DB.ExecContext(ctx,
 		`INSERT INTO build_meta(key, value) VALUES('schema_version', ?)

@@ -77,6 +77,7 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 			issuesOpened int
 			firstAt      time.Time
 			lastAt       time.Time
+			years        map[int]struct{}
 		}
 		byLogin := map[string]*agg{}
 
@@ -97,6 +98,7 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 						ProfileURL:  author.URL,
 						Bio:         author.Bio,
 					},
+					years: map[int]struct{}{},
 				}
 				byLogin[author.Login] = a
 			}
@@ -121,6 +123,9 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 			}
 			if c.CommittedDate.After(a.lastAt) {
 				a.lastAt = c.CommittedDate
+			}
+			if !c.CommittedDate.IsZero() {
+				a.years[c.CommittedDate.UTC().Year()] = struct{}{}
 			}
 		}
 
@@ -148,6 +153,9 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 			if p.CreatedAt.After(a.lastAt) {
 				a.lastAt = p.CreatedAt
 			}
+			if !p.CreatedAt.IsZero() {
+				a.years[p.CreatedAt.UTC().Year()] = struct{}{}
+			}
 		}
 
 		// 3. Issues.
@@ -167,6 +175,9 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 			if is.CreatedAt.After(a.lastAt) {
 				a.lastAt = is.CreatedAt
 			}
+			if !is.CreatedAt.IsZero() {
+				a.years[is.CreatedAt.UTC().Year()] = struct{}{}
+			}
 		}
 
 		// Persist this repo's batch in a single transaction.
@@ -176,6 +187,7 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 		}
 		contribs := make([]store.ContributorUpsert, 0, len(byLogin))
 		rows := make([]store.RepoContribution, 0, len(byLogin))
+		var yearRows []store.ContributionYear
 		for login, a := range byLogin {
 			contribs = append(contribs, a.contrib)
 			rows = append(rows, store.RepoContribution{
@@ -188,6 +200,11 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 				FirstCommitAt:    a.firstAt,
 				LastCommitAt:     a.lastAt,
 			})
+			for y := range a.years {
+				yearRows = append(yearRows, store.ContributionYear{
+					RepoFullName: r.FullName, ContributorLogin: login, Year: y,
+				})
+			}
 		}
 		if err := st.UpsertContributors(ctx, tx, contribs); err != nil {
 			tx.Rollback()
@@ -196,6 +213,10 @@ func Run(ctx context.Context, st *store.Store, projects *config.Projects, exclus
 		// Full fetches replace stored counts; incremental fetches add deltas.
 		replace := since.IsZero()
 		if err := st.ApplyRepoContributions(ctx, tx, rows, replace); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if err := st.ApplyContributionYears(ctx, tx, yearRows, replace); err != nil {
 			tx.Rollback()
 			return err
 		}

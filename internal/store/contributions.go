@@ -133,6 +133,44 @@ func nullableTime(t time.Time) any {
 	return t
 }
 
+// ContributionYear is one (repo, contributor, year) row recording that the
+// contributor was actually active in that year on that repo.
+type ContributionYear struct {
+	RepoFullName     string
+	ContributorLogin string
+	Year             int
+}
+
+// ApplyContributionYears writes per-(repo, contributor, year) activity rows.
+// Pass `replace=true` to clear stored years for the affected repos first
+// (full re-fetch); `replace=false` adds rows on top of what's already there
+// (incremental fetch). The PRIMARY KEY makes duplicate rows a no-op via
+// INSERT OR IGNORE.
+func (s *Store) ApplyContributionYears(ctx context.Context, tx *sql.Tx, ys []ContributionYear, replace bool) error {
+	if replace {
+		seen := map[string]bool{}
+		for _, y := range ys {
+			seen[y.RepoFullName] = true
+		}
+		for repo := range seen {
+			if _, err := tx.ExecContext(ctx,
+				`DELETE FROM contribution_years WHERE repo_full_name = ?`, repo); err != nil {
+				return fmt.Errorf("clear contribution_years for %s: %w", repo, err)
+			}
+		}
+	}
+	const q = `
+		INSERT OR IGNORE INTO contribution_years
+			(repo_full_name, contributor_login, year)
+		VALUES (?, ?, ?)`
+	for _, y := range ys {
+		if _, err := tx.ExecContext(ctx, q, y.RepoFullName, y.ContributorLogin, y.Year); err != nil {
+			return fmt.Errorf("apply contribution_year %s/%s/%d: %w", y.RepoFullName, y.ContributorLogin, y.Year, err)
+		}
+	}
+	return nil
+}
+
 // UpdateRepoMetadata records what we just fetched so the next run can do an
 // incremental --since query.
 func (s *Store) UpdateRepoMetadata(ctx context.Context, tx *sql.Tx, fullName, defaultBranch, headOID string, fetchedAt time.Time) error {

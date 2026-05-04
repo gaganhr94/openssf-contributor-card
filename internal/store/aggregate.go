@@ -50,8 +50,9 @@ type ContributorAggregate struct {
 	FirstContribution  FirstContribution // earliest observed contribution
 	FirstContrib       time.Time         // alias of FirstContribution.At, kept for templates
 	LastContrib        time.Time
-	Rank               int // 1-indexed by total_contributions desc; ties share a rank
-	TotalContributors  int // for "X / N" display
+	Years              []int // distinct years with recorded activity, ascending
+	Rank               int   // 1-indexed by total_contributions desc; ties share a rank
+	TotalContributors  int   // for "X / N" display
 }
 
 // SinceYear returns the year of the first observed contribution, or 0 if
@@ -73,30 +74,6 @@ func (a ContributorAggregate) YearsActive() int {
 	years := a.LastContrib.Year() - a.FirstContrib.Year()
 	if years < 0 {
 		return 0
-	}
-	return years
-}
-
-// YearsList returns the inclusive range of years between first and last
-// contribution. Used for the "Years contributing" badge row matching
-// CNCF's contribcard. Approximation — we don't track per-year activity
-// separately, so a contributor first seen in 2020 and last in 2024 is
-// shown as 2020/2021/2022/2023/2024 even if they had a gap year.
-func (a ContributorAggregate) YearsList() []int {
-	if a.FirstContrib.IsZero() {
-		return nil
-	}
-	first := a.FirstContrib.Year()
-	last := first
-	if !a.LastContrib.IsZero() {
-		last = a.LastContrib.Year()
-	}
-	if last < first {
-		last = first
-	}
-	years := make([]int, 0, last-first+1)
-	for y := first; y <= last; y++ {
-		years = append(years, y)
 	}
 	return years
 }
@@ -167,12 +144,17 @@ func (s *Store) AllContributorAggregates(ctx context.Context) ([]ContributorAggr
 	if err != nil {
 		return nil, err
 	}
+	years, err := s.contributorYears(ctx)
+	if err != nil {
+		return nil, err
+	}
 	for i := range out {
 		out[i].Projects = projects[out[i].Login]
 		out[i].Repos = repos[out[i].Login]
 		if fc, ok := firsts[out[i].Login]; ok {
 			out[i].FirstContribution = fc
 		}
+		out[i].Years = years[out[i].Login]
 	}
 
 	// Compute ranks (dense: ties share a rank, next rank skips appropriately).
@@ -279,6 +261,31 @@ func (s *Store) contributorFirstContributions(ctx context.Context) (map[string]F
 			RepoFullName: repo,
 			At:           parseSQLiteTime(first),
 		}
+	}
+	return out, rows.Err()
+}
+
+// contributorYears returns a map from login -> sorted distinct years in
+// which the contributor was observed active across all repos.
+func (s *Store) contributorYears(ctx context.Context) (map[string][]int, error) {
+	const q = `
+		SELECT contributor_login, year
+		FROM contribution_years
+		GROUP BY contributor_login, year
+		ORDER BY contributor_login, year`
+	rows, err := s.DB.QueryContext(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string][]int{}
+	for rows.Next() {
+		var login string
+		var year int
+		if err := rows.Scan(&login, &year); err != nil {
+			return nil, err
+		}
+		out[login] = append(out[login], year)
 	}
 	return out, rows.Err()
 }
