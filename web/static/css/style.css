@@ -254,6 +254,14 @@ main {
   color: var(--navy);
   font-size: 1.05rem;
   font-weight: 600;
+  text-decoration: none;
+  transition: background 120ms ease, transform 120ms ease;
+}
+a.contrib-badge:hover,
+a.contrib-badge:focus-visible {
+  background: var(--accent);
+  color: #fff;
+  transform: translateY(-1px);
 }
 .contrib-badge svg { flex-shrink: 0; width: 18px; height: 18px; }
 .contrib-badge-count { line-height: 1; }
